@@ -1,0 +1,24 @@
+[
+  {
+    "reserva_id": "5359511f-0c68-4297-91ff-a3265308ca77",
+    "itinerario_id": "1",
+    "data_embarque": "2025-07-10",
+    "cliente": "Pedro Ribeiro",
+    "num_passageiros": 2,
+    "num_cabines": 1,
+    "valor": 5999.8,
+    "status": "recusado",
+    "data_criacao": "2025-04-13T17:46:20.819663"
+  },
+  {
+    "reserva_id": "2495bd7e-94cd-48ab-a71e-8a0c7e26bb3f",
+    "itinerario_id": "1",
+    "data_embarque": "2025-07-10",
+    "cliente": "Pedro Ribeiro",
+    "num_passageiros": 2,
+    "num_cabines": 1,
+    "valor": 5999.8,
+    "status": "aprovado",
+    "data_criacao": "2025-04-13T17:54:39.795765"
+  }
+]

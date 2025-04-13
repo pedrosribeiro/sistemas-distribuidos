@@ -1,6 +1,7 @@
 import json
 
 import pika
+
 from app.ms_pagamento.service import process_payment
 from app.shared.config import RABBITMQ_HOST, RABBITMQ_PASS, RABBITMQ_USER
 

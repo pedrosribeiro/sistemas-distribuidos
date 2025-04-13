@@ -2,6 +2,7 @@ import base64
 import json
 
 import pika
+
 from app.shared.config import RABBITMQ_HOST, RABBITMQ_PASS, RABBITMQ_USER
 
 

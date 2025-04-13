@@ -20,5 +20,16 @@
     "valor": 5999.8,
     "status": "aprovado",
     "data_criacao": "2025-04-13T17:54:39.795765"
+  },
+  {
+    "reserva_id": "24c70680-f9ea-4814-a7e5-044aeac855ae",
+    "itinerario_id": "1",
+    "data_embarque": "2025-07-10",
+    "cliente": "Pedro Teste",
+    "num_passageiros": 3,
+    "num_cabines": 2,
+    "valor": 8999.7,
+    "status": "bilhete_gerado",
+    "data_criacao": "2025-04-13T18:03:24.578250"
   }
 ]

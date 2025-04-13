@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="utf-8">
+    <title>Cruzeiros</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    <nav>
+        <a href="{{ url_for('home.index') }}">Início</a>
+        <a href="{{ url_for('status.listar_reservas') }}">Status Reservas</a>
+        <a href="{{ url_for('marketing.promocoes') }}">Promoções</a>
+    </nav>
+
+    <header>
+        <h1>Sistema de Reservas de Cruzeiros</h1>
+        <nav>
+            <a href="{{ url_for('home.index') }}">Início</a>
+        </nav>
+    </header>
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+</body>
+
+</html>

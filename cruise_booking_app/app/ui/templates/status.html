@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Status das Reservas</h2>
+
+{% if reservas %}
+<table border="1" cellpadding="5">
+    <tr>
+        <th>Reserva ID</th>
+        <th>Cliente</th>
+        <th>Data</th>
+        <th>Valor</th>
+        <th>Status</th>
+    </tr>
+    {% for r in reservas %}
+    <tr>
+        <td>{{ r.reserva_id }}</td>
+        <td>{{ r.cliente }}</td>
+        <td>{{ r.data_embarque }}</td>
+        <td>R$ {{ r.valor }}</td>
+        <td>{{ r.status }}</td>
+    </tr>
+    {% endfor %}
+</table>
+{% else %}
+<p>Nenhuma reserva encontrada.</p>
+{% endif %}
+{% endblock %}

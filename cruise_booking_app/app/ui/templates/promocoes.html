@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Promoções por Destino</h2>
+
+<form method="POST">
+    <input type="text" name="destino" placeholder="Destino (ex: Caribe)" required>
+    <button type="submit">Escutar Promoções</button>
+</form>
+
+{% if mensagens %}
+<h3>Mensagens Recebidas:</h3>
+<ul>
+    {% for m in mensagens %}
+    <li>
+        📍 <strong>{{ m.destino }}</strong> —
+        {{ m.mensagem }} (até {{ m.valido_ate }})
+    </li>
+    {% endfor %}
+</ul>
+{% else %}
+<p>Nenhuma promoção recebida ainda.</p>
+{% endif %}
+{% endblock %}

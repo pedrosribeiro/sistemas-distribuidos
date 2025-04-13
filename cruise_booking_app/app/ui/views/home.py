@@ -1,0 +1,40 @@
+from flask import Blueprint, render_template, request, redirect, url_for
+import uuid
+from datetime import datetime
+import json
+from app.ms_reserva.service import consultar_itinerarios, criar_reserva
+from app.ms_reserva.publisher import publicar_reserva
+
+bp = Blueprint("home", __name__)
+
+
+@bp.route("/")
+def index():
+    return render_template("home.html")
+
+
+@bp.route("/itinerarios", methods=["POST"])
+def mostrar_itinerarios():
+    destino = request.form["destino"]
+    data = request.form["data_embarque"]
+    porto = request.form["porto_embarque"]
+
+    lista = consultar_itinerarios(destino, data, porto)
+    return render_template("home.html", itinerarios=lista, destino=destino, data=data, porto=porto)
+
+
+@bp.route("/reservar/<itinerario_id>", methods=["GET", "POST"])
+def reservar(itinerario_id):
+    if request.method == "POST":
+        cliente = request.form["cliente"]
+        num_passageiros = int(request.form["num_passageiros"])
+        num_cabines = int(request.form["num_cabines"])
+        valor = float(request.form["valor"])
+        data_embarque = request.form["data_embarque"]
+
+        reserva = criar_reserva(itinerario_id, data_embarque, cliente, num_passageiros, num_cabines, valor)
+        publicar_reserva(reserva)
+
+        return redirect(url_for("home.index"))
+
+    return render_template("reservar.html", itinerario_id=itinerario_id)

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Buscar Itinerários</h2>
+<form method="POST" action="{{ url_for('home.mostrar_itinerarios') }}">
+    <input type="text" name="destino" placeholder="Destino" required>
+    <input type="date" name="data_embarque" required>
+    <input type="text" name="porto_embarque" placeholder="Porto de embarque" required>
+    <button type="submit">Buscar</button>
+</form>
+
+{% if itinerarios %}
+<h3>Itinerários Encontrados:</h3>
+<ul>
+    {% for itin in itinerarios %}
+    <li>
+        {{ itin.navio }} ({{ itin.numero_noites }} noites) — R$ {{ itin.valor_por_pessoa }}
+        <form method="GET" action="{{ url_for('home.reservar', itinerario_id=itin.id) }}">
+            <input type="hidden" name="data_embarque" value="{{ data }}">
+            <button type="submit">Reservar</button>
+        </form>
+    </li>
+    {% endfor %}
+</ul>
+{% endif %}
+{% endblock %}

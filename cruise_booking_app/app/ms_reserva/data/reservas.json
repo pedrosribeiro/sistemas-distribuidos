@@ -31,5 +31,16 @@
     "valor": 8999.7,
     "status": "bilhete_gerado",
     "data_criacao": "2025-04-13T18:03:24.578250"
+  },
+  {
+    "reserva_id": "6464319f-9ed5-4c9f-a88f-aa9e48d45532",
+    "itinerario_id": "1",
+    "data_embarque": "2025-04-13",
+    "cliente": "Pedro Ribeiro",
+    "num_passageiros": 2,
+    "num_cabines": 1,
+    "valor": 5000.0,
+    "status": "pagamento_pendente",
+    "data_criacao": "2025-04-13T18:33:06.143586"
   }
 ]

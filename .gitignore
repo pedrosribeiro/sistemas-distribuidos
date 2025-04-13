@@ -1,1 +1,8 @@
+__pycache__/
+
 venv/
+
+.env
+
+**/keys/*
+!.gitkeep

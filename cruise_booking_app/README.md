@@ -1,4 +1,4 @@
-## Running RabbitMQ
+## Running App
 
 To start the RabbitMQ service and the cruise booking application, use the following command:
 

@@ -12,7 +12,8 @@ bp = Blueprint("home", __name__)
 
 @bp.route("/")
 def index():
-    return render_template("home.html")
+    itinerarios = consultar_itinerarios()
+    return render_template("home.html", itinerarios=itinerarios)
 
 
 @bp.route("/itinerarios", methods=["POST"])

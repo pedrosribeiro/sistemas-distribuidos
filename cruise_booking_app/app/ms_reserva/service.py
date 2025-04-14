@@ -6,7 +6,7 @@ from pathlib import Path
 RESERVAS_PATH = Path("app/ms_reserva/data/reservas.json")
 
 
-def consultar_itinerarios(destino: str, data_embarque: str, porto_embarque: str):
+def consultar_itinerarios(destino: str = "", data_embarque: str = "", porto_embarque: str = ""):
     # Simulação de base de dados de itinerários
     itinerarios = [
         {
@@ -30,6 +30,10 @@ def consultar_itinerarios(destino: str, data_embarque: str, porto_embarque: str)
             "datas_disponiveis": ["2025-07-15", "2025-09-01"],
         },
     ]
+
+    # Se nenhum filtro for aplicado, retorna todos os itinerários
+    if not destino and not data_embarque and not porto_embarque:
+        return itinerarios
 
     return [
         itin

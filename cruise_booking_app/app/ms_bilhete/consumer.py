@@ -36,6 +36,7 @@ def processar_pagamento_aprovado(ch, method, properties, body):
 
 
 def start_consuming():
+    print(f"Conectando ao RabbitMQ em {RABBITMQ_HOST} com usuário {RABBITMQ_USER}...")
     connection = pika.BlockingConnection(
         pika.ConnectionParameters(
             host=RABBITMQ_HOST,

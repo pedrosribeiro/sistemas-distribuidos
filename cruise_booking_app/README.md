@@ -1,10 +1,10 @@
 ## Running RabbitMQ
 
 ```bash
-docker compose up -d
+docker-compose up --build
 ```
 
-## Accessing UI via browser
+## Accessing UIs via browser
 
 ```
 http://localhost:15672

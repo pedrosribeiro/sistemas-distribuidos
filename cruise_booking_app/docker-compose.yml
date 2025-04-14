@@ -6,5 +6,96 @@ services:
       - "5672:5672"
       - "15672:15672"
     environment:
-      RABBITMQ_DEFAULT_USER: admin
-      RABBITMQ_DEFAULT_PASS: admin
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
+    healthcheck:
+      test: [ "CMD", "rabbitmqctl", "status" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - cruise_net
+
+  ms_bilhete:
+    build:
+      context: .
+      dockerfile: app/ms_bilhete/Dockerfile
+    container_name: ms_bilhete
+    env_file:
+      - .env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - cruise_net
+
+  ms_marketing:
+    build:
+      context: .
+      dockerfile: app/ms_marketing/Dockerfile
+    container_name: ms_marketing
+    env_file:
+      - .env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - cruise_net
+
+  ms_pagamento:
+    build:
+      context: .
+      dockerfile: app/ms_pagamento/Dockerfile
+    container_name: ms_pagamento
+    env_file:
+      - .env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - cruise_net
+
+  ms_reserva:
+    build:
+      context: .
+      dockerfile: app/ms_reserva/Dockerfile
+    container_name: ms_reserva
+    env_file:
+      - .env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - cruise_net
+
+  subscriber_promocoes:
+    build:
+      context: .
+      dockerfile: app/subscriber_promocoes/Dockerfile
+    container_name: subscriber_promocoes
+    env_file:
+      - .env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - cruise_net
+
+  ui:
+    build:
+      context: .
+      dockerfile: app/ui/Dockerfile
+    container_name: cruise_ui
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - cruise_net
+
+networks:
+  cruise_net:
+    driver: bridge

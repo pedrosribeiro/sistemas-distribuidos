@@ -1,21 +1,23 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h2>Buscar Itinerários</h2>
-<form method="POST" action="{{ url_for('home.mostrar_itinerarios') }}">
-    <input type="text" name="destino" placeholder="Destino" required>
+<h2 class="titulo">Buscar Itinerários</h2>
+
+<form method="POST" action="{{ url_for('home.mostrar_itinerarios') }}" class="formulario">
+    <input type="text" name="destino" placeholder="Destino (ex: Caribe)" required>
     <input type="date" name="data_embarque" required>
-    <input type="text" name="porto_embarque" placeholder="Porto de embarque" required>
+    <input type="text" name="porto_embarque" placeholder="Porto de embarque (ex: Santos)" required>
     <button type="submit">Buscar</button>
 </form>
 
 {% if itinerarios %}
-<h3>Itinerários Encontrados:</h3>
-<ul>
+<h3 class="subtitulo">Itinerários Encontrados:</h3>
+<ul class="lista-itinerarios">
     {% for itin in itinerarios %}
-    <li>
-        {{ itin.navio }} ({{ itin.numero_noites }} noites) — R$ {{ itin.valor_por_pessoa }}
-        <form method="GET" action="{{ url_for('home.reservar', itinerario_id=itin.id) }}">
+    <li class="item-itinerario">
+        <strong>{{ itin.navio }}</strong> ({{ itin.numero_noites }} noites) —
+        <span class="preco">R$ {{ itin.valor_por_pessoa }}</span>
+        <form method="GET" action="{{ url_for('home.reservar', itinerario_id=itin.id) }}" class="form-reserva">
             <input type="hidden" name="data_embarque" value="{{ data }}">
             <button type="submit">Reservar</button>
         </form>

@@ -5,25 +5,26 @@
     <meta charset="utf-8">
     <title>Cruzeiros</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 
 <body>
-    <nav>
-        <a href="{{ url_for('home.index') }}">Início</a>
-        <a href="{{ url_for('status.listar_reservas') }}">Status Reservas</a>
-        <a href="{{ url_for('marketing.promocoes') }}">Promoções</a>
-    </nav>
 
     <header>
         <h1>Sistema de Reservas de Cruzeiros</h1>
-        <nav>
+        <nav class="nav-principal">
             <a href="{{ url_for('home.index') }}">Início</a>
+            <a href="{{ url_for('status.listar_reservas') }}">Status Reservas</a>
+            <a href="{{ url_for('marketing.promocoes') }}">Promoções</a>
         </nav>
     </header>
 
     <main>
-        {% block content %}{% endblock %}
+        <div class="container">
+            {% block content %}{% endblock %}
+        </div>
     </main>
+
 </body>
 
 </html>

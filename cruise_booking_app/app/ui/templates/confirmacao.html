@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="confirmacao-container">
+    <h2>Reserva Confirmada!</h2>
+    <p>Obrigado por reservar com a gente, <strong>{{ reserva.cliente }}</strong>!</p>
+
+    <h3>Detalhes da Reserva:</h3>
+    <ul>
+        <li><strong>ID da Reserva:</strong> {{ reserva.reserva_id }}</li>
+        <li><strong>Data de Embarque:</strong> {{ reserva.data_embarque }}</li>
+        <li><strong>Passageiros:</strong> {{ reserva.num_passageiros }}</li>
+        <li><strong>Cabines:</strong> {{ reserva.num_cabines }}</li>
+        <li><strong>Valor Total:</strong> R$ {{ reserva.valor }}</li>
+        <li><strong>Status:</strong> {{ reserva.status }}</li>
+    </ul>
+
+    <a href="{{ url_for('home.index') }}" class="botao-voltar">⬅ Voltar à Home</a>
+</div>
+{% endblock %}

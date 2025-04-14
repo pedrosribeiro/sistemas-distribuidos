@@ -42,5 +42,27 @@
     "valor": 5000.0,
     "status": "pagamento_pendente",
     "data_criacao": "2025-04-13T18:33:06.143586"
+  },
+  {
+    "reserva_id": "4917f3e5-f139-4d8f-8238-7b6df939b94d",
+    "itinerario_id": "1",
+    "data_embarque": "2025-04-13",
+    "cliente": "Pedro Teste 2",
+    "num_passageiros": 2,
+    "num_cabines": 2,
+    "valor": 4500.0,
+    "status": "pagamento_pendente",
+    "data_criacao": "2025-04-13T22:17:17.651968"
+  },
+  {
+    "reserva_id": "1c79ce18-27a8-4448-9eec-dc3e8f455ccf",
+    "itinerario_id": "1",
+    "data_embarque": "2025-04-13",
+    "cliente": "Pedro Teste 2",
+    "num_passageiros": 2,
+    "num_cabines": 2,
+    "valor": 4500.0,
+    "status": "pagamento_pendente",
+    "data_criacao": "2025-04-13T22:18:10.771365"
   }
 ]

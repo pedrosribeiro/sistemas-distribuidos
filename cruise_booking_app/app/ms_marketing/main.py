@@ -13,6 +13,11 @@ if __name__ == "__main__":
             "destino": "Europa",
             "valido_ate": "2025-06-30",
         },
+        {
+            "mensagem": "Cruzeiro no Brasil com 40% OFF!",
+            "destino": "Brasil",
+            "valido_ate": "2025-05-10",
+        },
     ]
 
     for promocao in promocoes:

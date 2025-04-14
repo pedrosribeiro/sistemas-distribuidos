@@ -1,15 +1,15 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h2>Promoções por Destino</h2>
+<h2 class="titulo">Promoções por destino</h2>
 
-<form method="POST">
+<form method="POST" class="formulario">
     <input type="text" name="destino" placeholder="Destino (ex: Caribe)" required>
     <button type="submit">Escutar Promoções</button>
 </form>
 
 {% if mensagens %}
-<h3>Mensagens Recebidas:</h3>
+<h3 class="subtitulo">Mensagens Recebidas:</h3>
 <ul>
     {% for m in mensagens %}
     <li>

@@ -1,8 +1,10 @@
-from flask import Blueprint, render_template, request, redirect, url_for
-import threading
-import pika
 import json
-from app.shared.config import RABBITMQ_HOST, RABBITMQ_USER, RABBITMQ_PASS
+import threading
+
+import pika
+from flask import Blueprint, redirect, render_template, request, url_for
+
+from app.shared.config import RABBITMQ_HOST, RABBITMQ_PASS, RABBITMQ_USER
 
 bp = Blueprint("marketing", __name__, url_prefix="/promocoes")
 
@@ -16,6 +18,7 @@ def callback_factory(destino):
         data = json.loads(body)
         mensagens_promocionais.append(data)
         print(f"[PROMOÇÃO {destino.upper()}] Recebida: {data.get('mensagem')}")
+
     return processar
 
 
@@ -30,16 +33,14 @@ def iniciar_listener_para(destino):
         connection = pika.BlockingConnection(
             pika.ConnectionParameters(
                 host=RABBITMQ_HOST,
-                credentials=pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASS)
+                credentials=pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASS),
             )
         )
         channel = connection.channel()
         channel.queue_declare(queue=fila)
 
         channel.basic_consume(
-            queue=fila,
-            on_message_callback=callback_factory(destino),
-            auto_ack=True
+            queue=fila, on_message_callback=callback_factory(destino), auto_ack=True
         )
 
         print(f"[UI MARKETING] Escutando fila: {fila}")

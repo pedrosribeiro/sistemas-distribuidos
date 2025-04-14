@@ -1,6 +1,7 @@
-from flask import Blueprint, render_template
 import json
 from pathlib import Path
+
+from flask import Blueprint, render_template
 
 bp = Blueprint("status", __name__, url_prefix="/status")
 

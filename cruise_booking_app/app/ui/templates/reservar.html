@@ -1,13 +1,25 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h2>Fazer Reserva (Itinerário {{ itinerario_id }})</h2>
-<form method="POST">
-    <input type="text" name="cliente" placeholder="Nome do Cliente" required>
-    <input type="number" name="num_passageiros" placeholder="Passageiros" required>
-    <input type="number" name="num_cabines" placeholder="Cabines" required>
-    <input type="number" step="0.01" name="valor" placeholder="Valor total" required>
-    <input type="date" name="data_embarque" required>
+<h2>Fazer Reserva</h2>
+<p>Itinerário selecionado: <strong>#{{ itinerario_id }}</strong></p>
+
+<form method="POST" class="reserva-form">
+    <label for="cliente">Nome do Cliente:</label>
+    <input type="text" id="cliente" name="cliente" placeholder="Ex: Pedro Ribeiro" required>
+
+    <label for="num_passageiros">Número de Passageiros:</label>
+    <input type="number" id="num_passageiros" name="num_passageiros" min="1" required>
+
+    <label for="num_cabines">Número de Cabines:</label>
+    <input type="number" id="num_cabines" name="num_cabines" min="1" required>
+
+    <label for="valor">Valor Total (R$):</label>
+    <input type="number" id="valor" name="valor" step="0.01" placeholder="Ex: 1500.00" required>
+
+    <label for="data_embarque">Data de Embarque:</label>
+    <input type="date" id="data_embarque" name="data_embarque" required>
+
     <button type="submit">Confirmar Reserva</button>
 </form>
 {% endblock %}

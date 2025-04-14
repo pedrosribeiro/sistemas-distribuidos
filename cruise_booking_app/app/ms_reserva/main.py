@@ -5,11 +5,11 @@ from app.ms_reserva.service import consultar_itinerarios, criar_reserva
 if __name__ == "__main__":
     print("=== MS RESERVA ===")
 
-    #destino = input("Destino desejado: ")
+    # destino = input("Destino desejado: ")
     destino = "Caribe"
-    #data_embarque = input("Data de embarque (YYYY-MM-DD): ")
+    # data_embarque = input("Data de embarque (YYYY-MM-DD): ")
     data_embarque = "2025-07-10"
-    #porto_embarque = input("Porto de embarque: ")
+    # porto_embarque = input("Porto de embarque: ")
     porto_embarque = "Santos"
 
     print("\nBuscando itinerários...")
@@ -24,7 +24,7 @@ if __name__ == "__main__":
                 f"{i + 1} - {itin['navio']} ({itin['numero_noites']} noites) - R$ {itin['valor_por_pessoa']:.2f}"
             )
 
-        #escolha = int(input("Escolha um itinerário (número): ")) - 1
+        # escolha = int(input("Escolha um itinerário (número): ")) - 1
         escolha = 1
         itin = itinerarios[escolha]
 

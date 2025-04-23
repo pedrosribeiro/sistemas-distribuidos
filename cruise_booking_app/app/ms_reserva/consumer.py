@@ -87,7 +87,3 @@ def start_consuming():
 
     print("[MS RESERVA] Aguardando mensagens de pagamento e bilhete...")
     channel.start_consuming()
-
-
-if __name__ == "__main__":
-    start_consuming()

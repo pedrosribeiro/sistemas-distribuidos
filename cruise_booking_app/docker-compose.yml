@@ -67,6 +67,8 @@ services:
         condition: service_healthy
     networks:
       - cruise_net
+    volumes:
+      - reservas_data:/app/app/ms_reserva/data
 
   subscriber_promocoes:
     build:
@@ -95,7 +97,12 @@ services:
         condition: service_healthy
     networks:
       - cruise_net
+    volumes:
+      - reservas_data:/app/app/ms_reserva/data
 
 networks:
   cruise_net:
     driver: bridge
+
+volumes:
+  reservas_data:

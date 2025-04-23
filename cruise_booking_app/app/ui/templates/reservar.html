@@ -14,11 +14,16 @@
     <label for="num_cabines">Número de Cabines:</label>
     <input type="number" id="num_cabines" name="num_cabines" min="1" required>
 
-    <label for="valor">Valor Total (R$):</label>
-    <input type="number" id="valor" name="valor" step="0.01" placeholder="Ex: 1500.00" required>
-
     <label for="data_embarque">Data de Embarque:</label>
-    <input type="date" id="data_embarque" name="data_embarque" required>
+    <select id="data_embarque" name="data_embarque" required>
+        {% for data in datas_embarque %}
+        <option value="{{ data }}" {% if data == data_embarque %}selected{% endif %}>{{ data }}</option>
+        {% endfor %}
+    </select>
+
+    <label for="valor_por_pessoa">Valor por Pessoa:</label>
+    <input type="number" id="valor_por_pessoa" name="valor_por_pessoa" value="{{ valor_por_pessoa }}" disabled required>
+    <input type="hidden" id="valor_por_pessoa" name="valor_por_pessoa" value="{{ valor_por_pessoa }}">
 
     <button type="submit">Confirmar Reserva</button>
 </form>

@@ -16,9 +16,16 @@
     {% for itin in itinerarios %}
     <li class="item-itinerario">
         <strong>{{ itin.navio }}</strong> ({{ itin.numero_noites }} noites) —
-        <span class="preco">R$ {{ itin.valor_por_pessoa }}</span>
-        <form method="GET" action="{{ url_for('home.reservar', itinerario_id=itin.id) }}" class="form-reserva">
-            <input type="hidden" name="data_embarque" value="{{ data }}">
+        <span class="preco">R$ {{ itin.valor_por_pessoa }}</span> por pessoa
+        <br>
+        <span class="porto_embarque">Embarque: {{ itin.porto_embarque }}</span>
+        <br>
+        <span class="porto_desembarque">Desembarque: {{ itin.porto_desembarque }}</span>
+        <br>
+        <span class="lugares_visitados">Lugares visitados: {{ ', '.join(itin.lugares_visitados) }}</span>
+        <br>
+        <span class="datas-embarque">Datas disponíveis: {{ ', '.join(itin.datas_embarque) }}</span>
+        <form method="GET" action="{{ url_for('home.reservar', itinerario_id=itin.id, datas_embarque=','.join(itin.datas_embarque), valor_por_pessoa=itin.valor_por_pessoa) }}" class="form-reserva">
             <button type="submit">Reservar</button>
         </form>
     </li>

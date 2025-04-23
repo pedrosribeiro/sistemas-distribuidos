@@ -2,7 +2,6 @@ import json
 import uuid
 
 import pika
-
 from app.shared.config import RABBITMQ_HOST, RABBITMQ_PASS, RABBITMQ_USER
 
 
@@ -30,7 +29,7 @@ def send_test_reserva():
         exchange="", routing_key="reserva-criada", body=json.dumps(reserva)
     )
 
-    print(f"[TESTE] Reserva enviada para a fila: {reserva['reserva_id']}")
+    logging.info(f"[TESTE] Reserva enviada para a fila: {reserva['reserva_id']}")
     connection.close()
 
 

@@ -1,8 +1,14 @@
 import json
+import logging
 
 import pika
-
 from app.shared.config import RABBITMQ_HOST, RABBITMQ_PASS, RABBITMQ_USER
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[logging.StreamHandler()],
+)
 
 
 def publicar_promocao(promocao: dict):
@@ -20,5 +26,5 @@ def publicar_promocao(promocao: dict):
 
     channel.basic_publish(exchange="", routing_key=nome_fila, body=json.dumps(promocao))
 
-    print(f"[MS MARKETING] Promoção publicada na fila: {nome_fila}")
+    logging.info(f"[MS MARKETING] Promoção publicada na fila: {nome_fila}")
     connection.close()

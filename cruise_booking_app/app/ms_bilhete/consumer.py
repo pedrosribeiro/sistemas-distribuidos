@@ -1,13 +1,19 @@
 import base64
 import json
+import logging
 
 import pika
-
 from app.ms_bilhete.publisher import publicar_bilhete
 from app.shared.config import RABBITMQ_HOST, RABBITMQ_PASS, RABBITMQ_USER
 from app.shared.crypto_utils import load_public_key, verify_signature
 
-KEY_PATH = "app/ms_pagamento/keys/public_key.pem"
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[logging.StreamHandler()],
+)
+
+KEY_PATH = "app/ms_bilhete/keys/public_key.pem"
 public_key = load_public_key(KEY_PATH)
 
 
@@ -19,7 +25,7 @@ def processar_pagamento_aprovado(ch, method, properties, body):
     mensagem_bytes = json.dumps(resultado).encode()
 
     if verify_signature(mensagem_bytes, assinatura, public_key):
-        print(
+        logging.info(
             f"[MS BILHETE] Assinatura VERIFICADA para reserva {resultado['reserva_id']}"
         )
 
@@ -32,7 +38,7 @@ def processar_pagamento_aprovado(ch, method, properties, body):
         publicar_bilhete(bilhete)
 
     else:
-        print("[MS BILHETE] Assinatura INVÁLIDA — mensagem ignorada")
+        logging.info("[MS BILHETE] Assinatura INVÁLIDA — mensagem ignorada")
 
 
 def start_consuming():
@@ -44,12 +50,23 @@ def start_consuming():
     )
     channel = connection.channel()
 
-    channel.queue_declare(queue="pagamento-aprovado")
+    # Declara a exchange do tipo fanout
+    channel.exchange_declare(
+        exchange="pagamento-aprovado-exchange", exchange_type="fanout"
+    )
+
+    # Cria uma fila exclusiva para este consumidor e faz o bind na exchange
+    result = channel.queue_declare(queue="", exclusive=True)
+    queue_name = result.method.queue
+    channel.queue_bind(exchange="pagamento-aprovado-exchange", queue=queue_name)
+
     channel.basic_consume(
-        queue="pagamento-aprovado",
+        queue=queue_name,
         on_message_callback=processar_pagamento_aprovado,
         auto_ack=True,
     )
 
-    print("[MS BILHETE] Aguardando pagamentos aprovados...")
+    logging.info(
+        "[MS BILHETE] Aguardando pagamentos aprovados (via exchange fanout)..."
+    )
     channel.start_consuming()

@@ -9,9 +9,12 @@
         <tr>
             <th>Reserva ID</th>
             <th>Cliente</th>
+            <th>Número de Passageiros</th>
+            <th>Número de Cabines</th>
             <th>Data de Embarque</th>
             <th>Valor</th>
-            <th>Status</th>
+            <th>Status Pagamento</th>
+            <th>Status Bilhete</th>
         </tr>
     </thead>
     <tbody>
@@ -19,9 +22,12 @@
         <tr>
             <td>{{ r.reserva_id }}</td>
             <td>{{ r.cliente }}</td>
+            <td>{{ r.num_passageiros }}</td>
+            <td>{{ r.num_cabines }}</td>
             <td>{{ r.data_embarque }}</td>
             <td>R$ {{ r.valor }}</td>
-            <td>{{ r.status }}</td>
+            <td>{{ r.status_pagamento }}</td>
+            <td>{{ r.status_bilhete }}</td>
         </tr>
         {% endfor %}
     </tbody>

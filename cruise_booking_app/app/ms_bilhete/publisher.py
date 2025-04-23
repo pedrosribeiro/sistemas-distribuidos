@@ -1,8 +1,14 @@
 import json
+import logging
 
 import pika
-
 from app.shared.config import RABBITMQ_HOST, RABBITMQ_PASS, RABBITMQ_USER
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[logging.StreamHandler()],
+)
 
 
 def publicar_bilhete(bilhete):
@@ -19,5 +25,7 @@ def publicar_bilhete(bilhete):
         exchange="", routing_key="bilhete-gerado", body=json.dumps(bilhete)
     )
 
-    print(f"[MS BILHETE] Bilhete gerado e publicado: {bilhete['codigo_bilhete']}")
+    logging.info(
+        f"[MS BILHETE] Bilhete gerado e publicado: {bilhete['codigo_bilhete']}"
+    )
     connection.close()

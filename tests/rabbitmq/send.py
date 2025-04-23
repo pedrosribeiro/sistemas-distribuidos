@@ -12,7 +12,7 @@ def main():
     channel.queue_declare(queue="hello")
 
     channel.basic_publish(exchange="", routing_key="hello", body="Hello World!")
-    print(" [x] Sent 'Hello World!'")
+    logging.info(" [x] Sent 'Hello World!'")
     connection.close()
 
 

@@ -72,8 +72,13 @@ nav a {
     font-weight: bold;
 }
 
+.data-embarque {
+    color: #000;
+    font-weight: normal;
+}
+
 .container {
-    max-width: 800px;
+    max-width: 1000px;
     margin: 0 auto;
     padding: 1rem;
 }

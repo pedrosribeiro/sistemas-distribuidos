@@ -12,7 +12,8 @@
         <li><strong>Passageiros:</strong> {{ reserva.num_passageiros }}</li>
         <li><strong>Cabines:</strong> {{ reserva.num_cabines }}</li>
         <li><strong>Valor Total:</strong> R$ {{ reserva.valor }}</li>
-        <li><strong>Status:</strong> {{ reserva.status }}</li>
+        <li><strong>Status Pagamento:</strong> {{ reserva.status_pagamento }}</li>
+        <li><strong>Status Bilhete:</strong> {{ reserva.status_bilhete }}</li>
     </ul>
 
     <a href="{{ url_for('home.index') }}" class="botao-voltar">⬅ Voltar à Home</a>

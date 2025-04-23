@@ -4,7 +4,7 @@ WORKDIR /app
 
 COPY app/ms_bilhete /app/app/ms_bilhete
 COPY app/shared     /app/app/shared
-COPY app/ms_pagamento/keys /app/app/ms_pagamento/keys
+
 COPY app/ms_bilhete/requirements.txt requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 

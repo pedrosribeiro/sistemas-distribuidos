@@ -4,7 +4,7 @@ WORKDIR /app
 
 COPY app/ms_reserva /app/app/ms_reserva
 COPY app/shared    /app/app/shared
-COPY app/ms_pagamento/keys /app/app/ms_pagamento/keys
+
 COPY app/ms_reserva/requirements.txt requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 

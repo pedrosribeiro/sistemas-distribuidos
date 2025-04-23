@@ -29,19 +29,6 @@ services:
     networks:
       - cruise_net
 
-  ms_marketing:
-    build:
-      context: .
-      dockerfile: app/ms_marketing/Dockerfile
-    container_name: ms_marketing
-    env_file:
-      - .env
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-    networks:
-      - cruise_net
-
   ms_pagamento:
     build:
       context: .
@@ -69,19 +56,6 @@ services:
       - cruise_net
     volumes:
       - reservas_data:/app/app/ms_reserva/data
-
-  subscriber_promocoes:
-    build:
-      context: .
-      dockerfile: app/subscriber_promocoes/Dockerfile
-    container_name: subscriber_promocoes
-    env_file:
-      - .env
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-    networks:
-      - cruise_net
 
   ui:
     build:

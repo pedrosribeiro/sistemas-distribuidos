@@ -12,9 +12,6 @@ logging.basicConfig(
 
 
 def publicar_promocao(promocao: dict):
-    destino = promocao.get("destino", "").lower().replace(" ", "_")
-    nome_fila = f"promocoes-destino_{destino}"
-
     connection = pika.BlockingConnection(
         pika.ConnectionParameters(
             host=RABBITMQ_HOST,
@@ -22,9 +19,16 @@ def publicar_promocao(promocao: dict):
         )
     )
     channel = connection.channel()
-    channel.queue_declare(queue=nome_fila)
 
-    channel.basic_publish(exchange="", routing_key=nome_fila, body=json.dumps(promocao))
+    # Declare a fanout exchange
+    exchange_name = "promocoes_exchange"
+    channel.exchange_declare(exchange=exchange_name, exchange_type="direct")
 
-    logging.info(f"[MS MARKETING] Promoção publicada na fila: {nome_fila}")
+    channel.basic_publish(
+        exchange=exchange_name,
+        routing_key=promocao["destino"],
+        body=json.dumps(promocao),
+    )
+
+    logging.info(f"[MS MARKETING] Promoção publicada na exchange: {exchange_name}")
     connection.close()

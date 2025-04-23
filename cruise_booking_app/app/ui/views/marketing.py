@@ -22,7 +22,8 @@ destinos_escutando = set()
 def callback_factory(destino):
     def processar(ch, method, properties, body):
         data = json.loads(body)
-        mensagens_promocionais.append(data)
+        if data not in mensagens_promocionais:
+            mensagens_promocionais.append(data)
         logging.info(f"[PROMOÇÃO {destino.upper()}] Recebida: {data.get('mensagem')}")
 
     return processar

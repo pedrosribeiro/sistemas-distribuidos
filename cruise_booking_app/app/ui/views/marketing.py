@@ -49,7 +49,8 @@ def iniciar_listener_para(destino):
         return
 
     session_listeners[session_id].add(destino)
-    fila = f"promocoes-destino_{destino.lower().replace(' ', '_')}"
+    
+    fila = f"promocoes-destino_{destino.lower().replace(' ', '_')}_{session_id}"
 
     def listen():
         connection = pika.BlockingConnection(
@@ -61,7 +62,8 @@ def iniciar_listener_para(destino):
         channel = connection.channel()
 
         channel.exchange_declare(exchange="promocoes_exchange", exchange_type="direct")
-        channel.queue_declare(queue=fila)
+        
+        result = channel.queue_declare(queue=fila, exclusive=True)
         channel.queue_bind(
             exchange="promocoes_exchange", queue=fila, routing_key=destino
         )

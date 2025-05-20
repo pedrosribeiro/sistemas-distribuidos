@@ -27,13 +27,15 @@ class Peer:
         self.votes = 0
         # timers
         self.heartbeat_timer = None
-        self.timeout = random.uniform(0.150, 400)
+        self.timeout = random.uniform(0.350, 0.750)
         # Pyro
         self.ns = Pyro5.api.locate_ns()
         self.daemon = Pyro5.api.Daemon()
         self.uri = self.daemon.register(self)
         self.name = f"Peer_{self.peer_id}"
         self.ns.register(self.name, self.uri)
+
+        self.election_in_progress = False
 
         print(f"[{self.peer_id}] Registrado no NameServer como {self.name} -> {self.uri}")
 
@@ -52,11 +54,14 @@ class Peer:
 
     def find_tracker(self):
         try:
-            trackers = self.ns.list(prefix="Tracker_Epoca_")
+            ns = Pyro5.api.locate_ns()
+            trackers = ns.list(prefix="Tracker_Epoca_")
             if trackers:
                 # escolher maior época
                 best = max(trackers.keys(), key=lambda n: int(n.split('_')[-1]))
+                #print(f"best {best}")
                 uri = trackers[best]
+                #print(f"uri {uri}")
                 epoch = int(best.split('_')[-1])
                 
                 self.tracker_epoch = epoch
@@ -82,13 +87,33 @@ class Peer:
         self.heartbeat_timer.start()
 
     def on_tracker_failure(self):
-        # se já sou tracker, ignoro detecção de falha
         if self.is_tracker:
             return
         print(f"[{self.peer_id}] Timeout de heartbeat; detector de falha disparado")
         self.start_election()
 
     def start_election(self):
+        # Sinaliza imediatamente que está em eleição para evitar race condition
+        self.election_in_progress = True
+
+        ns = Pyro5.api.locate_ns()
+        peers = ns.list(prefix="Peer_")
+        ids = [int(name.split('_')[1]) for name in peers.keys()]
+
+        # Verifica se já existe eleição em andamento em outros peers
+        for pid in ids:
+            if pid == self.peer_id:
+                continue
+            try:
+                uri = ns.lookup(f"Peer_{pid}")
+                proxy = Pyro5.api.Proxy(uri)
+                if proxy.check_election_in_progress():
+                    print(f"[{self.peer_id}] Eleição já em andamento em Peer_{pid}")
+                    self.election_in_progress = False
+                    return
+            except:
+                pass
+
         # iniciar nova eleição com época sempre superior
         new_epoch = max(self.epoch, self.tracker_epoch) + 1
         self.epoch = new_epoch
@@ -96,6 +121,7 @@ class Peer:
         self.voted_for = self.peer_id
         self.voted_for_epoch = self.epoch
         print(f"[{self.peer_id}] Iniciando eleição para época {self.epoch}")
+        self.election_in_progress = False
         threading.Thread(target=self._collect_votes, daemon=True).start()
 
     def _collect_votes(self):
@@ -141,9 +167,12 @@ class Peer:
             print(f"[{self.peer_id}] Votou em {candidate_id} na época {epoch}")
             return True
         return False
+    
+    @Pyro5.api.expose
+    def check_election_in_progress(self):
+        return self.election_in_progress
 
     def become_tracker(self):
-        # cancelar timer de detecção de falha ao virar tracker
         if self.heartbeat_timer:
             self.heartbeat_timer.cancel()
             self.heartbeat_timer = None
@@ -152,16 +181,14 @@ class Peer:
         self.file_index = {}  # nome_arquivo -> set(peer_id)
         self.peers = {}       # peer_id -> uri
         name = f"Tracker_Epoca_{self.epoch}"
-        # registrar tracker no NameServer usando novo proxy nesta thread
         ns = Pyro5.api.locate_ns()
         try:
             ns.register(name, self.uri)
             print(f"[{self.peer_id}] Eleito tracker na época {self.epoch} e registrado como {name}")
-            # atualizar self.ns para futuras operações
             self.ns = ns
         except Exception as e:
             print(f"Erro ao registrar tracker no NameServer: {e}")
-        # coletar arquivos de todos os peers
+        
         for pid in range(1,6):
             try:
                 uri = ns.lookup(f"Peer_{pid}")
@@ -171,7 +198,7 @@ class Peer:
                 self._update_index(pid, fl)
             except Exception:
                 pass
-        # iniciar envio periódico de heartbeat
+        
         threading.Thread(target=self._send_heartbeat, daemon=True).start()
 
     def _update_index(self, pid, flist):
@@ -217,8 +244,14 @@ class Peer:
 
     @Pyro5.api.expose
     def receive_heartbeat(self, epoch):
-        if epoch == self.tracker_epoch:
-            self.reset_tracker_timer()
+        # Sempre atualiza tracker se época for igual ou maior
+        tracker = self.find_tracker()
+        if tracker != self.tracker or epoch > self.tracker_epoch:
+            self.tracker = tracker
+            self.tracker_epoch = epoch
+            print(f"[{self.peer_id}] Tracker atualizado para época {epoch}, sincronizando arquivos")
+            self.register_files_with_tracker()
+        self.reset_tracker_timer()
         return True
 
     @Pyro5.api.expose
@@ -398,4 +431,4 @@ if __name__ == '__main__':
         sys.exit(1)
     pid = int(sys.argv[1])
     peer = Peer(pid)
-    CLI(peer).cmdloop() 
+    CLI(peer).cmdloop()

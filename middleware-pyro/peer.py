@@ -36,6 +36,7 @@ class Peer:
         self.ns.register(self.name, self.uri)
 
         self.election_in_progress = False
+        self.finding_tracker = False
 
         print(f"[{self.peer_id}] Registrado no NameServer como {self.name} -> {self.uri}")
 
@@ -53,12 +54,12 @@ class Peer:
         self.reset_tracker_timer()
 
     def find_tracker(self):
-        print(f"[{self.peer_id}] Procurando tracker")
+        # print(f"[{self.peer_id}] Procurando tracker")
         try:
             ns = Pyro5.api.locate_ns()
             trackers = ns.list(prefix="Tracker_Epoca_")
             if trackers:
-                print(f"[{self.peer_id}] Encontrei {len(trackers)} trackers")
+                # print(f"[{self.peer_id}] Encontrei {len(trackers)} trackers")
                 # escolher maior época
                 best = max(trackers.keys(), key=lambda n: int(n.split('_')[-1]))
                 uri = trackers[best]
@@ -69,6 +70,7 @@ class Peer:
                 self.tracker_epoch = epoch
                 self.epoch = epoch
                 self.tracker = Pyro5.api.Proxy(uri)
+                self.finding_tracker = False
                 return self.tracker
         except Exception as e:
             print(f"[{self.peer_id}] Erro ao encontrar tracker: {e}")
@@ -274,14 +276,16 @@ class Peer:
 
     @Pyro5.api.expose
     def receive_heartbeat(self, epoch):
-        if self.tracker_epoch < epoch:
+        if self.tracker_epoch < epoch and not self.finding_tracker:
             self.tracker = None
+            self.heartbeat_timer.cancel()
+            self.finding_tracker = True
+            
+            threading.Thread(target=self.find_tracker).start()
+        
+        if self.tracker:
             self.reset_tracker_timer()
-            threading.Thread(target=self.find_tracker, daemon=True).start()
-            if self.tracker:
-                self.tracker = self.tracker
-                self.tracker_epoch = epoch
-        self.reset_tracker_timer()
+
         return True
     
     @Pyro5.api.expose

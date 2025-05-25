@@ -8,7 +8,6 @@ import Pyro5.errors
 import cmd
 import base64
 
-@Pyro5.api.expose
 @Pyro5.api.behavior(instance_mode="single")
 class Peer:
     def __init__(self, peer_id, base_dir="files"):
@@ -44,7 +43,6 @@ class Peer:
         self.tracker = self.find_tracker()
         if self.tracker:
             print(f"[{self.peer_id}] Tracker encontrado na época {self.tracker_epoch}")
-            self.register_files_with_tracker()
         else:
             print(f"[{self.peer_id}] Nenhum tracker encontrado; iniciando eleição")
             self.start_election()
@@ -54,12 +52,12 @@ class Peer:
         self.reset_tracker_timer()
 
     def find_tracker(self):
-        # print(f"[{self.peer_id}] Procurando tracker")
+        print(f"[{self.peer_id}] Procurando tracker")
         try:
             ns = Pyro5.api.locate_ns()
             trackers = ns.list(prefix="Tracker_Epoca_")
             if trackers:
-                # print(f"[{self.peer_id}] Encontrei {len(trackers)} trackers")
+                print(f"[{self.peer_id}] Encontrei {len(trackers)} trackers")
                 # escolher maior época
                 best = max(trackers.keys(), key=lambda n: int(n.split('_')[-1]))
                 uri = trackers[best]
@@ -71,16 +69,22 @@ class Peer:
                 self.epoch = epoch
                 self.tracker = Pyro5.api.Proxy(uri)
                 self.finding_tracker = False
+                
+                # Registrar arquivos com o tracker encontrado
+                self.register_files_with_tracker()
+                
                 return self.tracker
         except Exception as e:
-            print(f"[{self.peer_id}] Erro ao encontrar tracker: {e}")
+            print(f"Erro ao encontrar tracker: {e}")
         return None
 
     def register_files_with_tracker(self):
-        try:
-            self.tracker.register_files(self.peer_id, list(self.files))
-        except Exception as e:
-            print(f"Erro ao registrar arquivos no tracker: {e}")
+        if not self.is_tracker and self.tracker:
+            try:
+                self.tracker.register_files(self.peer_id, list(self.files))
+                print(f"[{self.peer_id}] Arquivos registrados com o tracker")
+            except Exception as e:
+                print(f"Erro ao registrar arquivos no tracker: {e}")
 
     def reset_tracker_timer(self):
         # só agenda timeout se existir tracker remoto e não for tracker
@@ -150,7 +154,7 @@ class Peer:
                 proxy.ping()
                 active_ids.append(pid)
             except:
-                pass
+                print(f"[{self.peer_id}] Peer {pid} inativo")
         total = len(active_ids)
         needed = total // 2 + 1
         for pid in active_ids:
@@ -164,7 +168,7 @@ class Peer:
                     self.votes += 1
                     print(f"[{self.peer_id}] Recebi voto de {pid}")
             except Exception:
-                pass
+                print(f"[{self.peer_id}] Erro ao receber voto de {pid}")
         if self.votes >= needed:
             self.become_tracker()
         else:
@@ -202,7 +206,6 @@ class Peer:
         except Exception as e:
             print(f"Erro ao registrar tracker no NameServer: {e}")
         
-        # Obter todos os peers ativos do Name Server e verificar quais estão respondendo
         try:
             peers = ns.list(prefix="Peer_")
             active_peers = []
@@ -210,33 +213,22 @@ class Peer:
                 pid = int(peer_name.split('_')[1])
                 try:
                     proxy = Pyro5.api.Proxy(peer_uri)
-                    proxy.ping()  # Verifica se o peer está ativo
+                    proxy.ping()
                     active_peers.append(pid)
-                    print(f"[{self.peer_id}] Peer {pid} está ativo.")
-                except Pyro5.errors.CommunicationError as e:
-                    print(f"[{self.peer_id}] Peer {pid} inativo.")
-                except Exception as e:
-                    print(f"[{self.peer_id}] Erro ao verificar Peer {pid}: {e}")
-            
-            # Atualizar índice com arquivos de cada peer ativo
+                except:
+                    print(f"[{self.peer_id}] Peer {pid} inativo")
             for pid in active_peers:
-                try:
-                    uri = ns.lookup(f"Peer_{pid}")
-                    proxy = Pyro5.api.Proxy(uri)
-                    fl = proxy.get_files()
-                    self.peers[pid] = uri
-                    self._update_index(pid, fl)
-                    print(f"[{self.peer_id}] Arquivos do peer {pid} registrados no tracker")
-                except Pyro5.errors.CommunicationError as e:
-                    print(f"[{self.peer_id}] Falha na comunicação com Peer {pid}: {e}")
-                except Exception as e:
-                    print(f"[{self.peer_id}] Erro ao obter arquivos do peer {pid}: {e}")
+                uri = ns.lookup(f"Peer_{pid}")
+                proxy = Pyro5.api.Proxy(uri)
+                self.peers[pid] = uri
 
-            # Adicionar arquivos locais do próprio tracker ao índice
-            self._update_index(self.peer_id, list(self.files))
-            print(f"[{self.peer_id}] Arquivos locais registrados no índice do tracker")
         except Exception as e:
-            print(f"[{self.peer_id}] Erro ao listar peers do Name Server: {e}")
+            print(f"Erro ao registrar arquivos no tracker: {e}")
+
+
+        # Adicionar arquivos locais do próprio tracker ao índice
+        self._update_index(self.peer_id, list(self.files))
+        print(f"[{self.peer_id}] Arquivos locais registrados no índice do tracker")
         
         threading.Thread(target=self._send_heartbeat, daemon=True).start()
 
@@ -251,6 +243,19 @@ class Peer:
         for fn in flist:
             self.file_index.setdefault(fn, set()).add(pid)
 
+    def _add_file_to_index(self, pid, filename):
+        """Adiciona um arquivo específico ao índice para um peer"""
+        self.file_index.setdefault(filename, set()).add(pid)
+        print(f"[{self.peer_id}] Tracker adicionou arquivo '{filename}' do peer {pid} ao índice")
+
+    def _remove_file_from_index(self, pid, filename):
+        """Remove um arquivo específico do índice para um peer"""
+        if filename in self.file_index:
+            self.file_index[filename].discard(pid)
+            if not self.file_index[filename]:
+                del self.file_index[filename]
+            print(f"[{self.peer_id}] Tracker removeu arquivo '{filename}' do peer {pid} do índice")
+
     def _send_heartbeat(self):
         while self.is_tracker:
             for pid, uri in list(self.peers.items()):
@@ -259,7 +264,7 @@ class Peer:
                         proxy = Pyro5.api.Proxy(uri)
                         proxy.receive_heartbeat(self.epoch)
                     except Exception:
-                        pass
+                        print(f"[{self.peer_id}] Erro ao enviar heartbeat para {pid}")
             time.sleep(0.1)
 
     @Pyro5.api.expose
@@ -270,9 +275,28 @@ class Peer:
             uri = ns.lookup(f"Peer_{peer_id}")
             self.peers[peer_id] = uri
             self._update_index(peer_id, flist)
-            print(f"[{self.peer_id}] Tracker atualizou índice com arquivos de {peer_id}")
+            print(f"[{self.peer_id}] Tracker atualizou índice completo com arquivos de {peer_id}")
         except Exception as e:
             print(f"Erro em register_files: {e}")
+
+    @Pyro5.api.expose
+    def register_file_addition(self, peer_id, filename):
+        """Registra a adição de um arquivo específico"""
+        try:
+            ns = Pyro5.api.locate_ns()
+            uri = ns.lookup(f"Peer_{peer_id}")
+            self.peers[peer_id] = uri
+            self._add_file_to_index(peer_id, filename)
+        except Exception as e:
+            print(f"Erro em register_file_addition: {e}")
+
+    @Pyro5.api.expose
+    def register_file_removal(self, peer_id, filename):
+        """Registra a remoção de um arquivo específico"""
+        try:
+            self._remove_file_from_index(peer_id, filename)
+        except Exception as e:
+            print(f"Erro em register_file_removal: {e}")
 
     @Pyro5.api.expose
     def receive_heartbeat(self, epoch):
@@ -325,13 +349,13 @@ class Peer:
                 ns = Pyro5.api.locate_ns()
                 uri = ns.lookup(f"Tracker_Epoca_{self.tracker_epoch}")
                 self.tracker = Pyro5.api.Proxy(uri)
-                self.tracker.register_files(self.peer_id, list(self.files))
+                self.tracker.register_file_addition(self.peer_id, filename)
+                print(f"[{self.peer_id}] Arquivo '{filename}' registrado com o tracker")
             except Exception as e:
-                print(f"[{self.peer_id}] Erro ao registrar arquivos no tracker: {e}")
+                print(f"[{self.peer_id}] Erro ao registrar arquivo no tracker: {e}")
         else:
             # Se for o tracker, atualiza seu próprio índice
-            self._update_index(self.peer_id, list(self.files))
-            print(f"[{self.peer_id}] Tracker adicionou arquivo local e atualizou o índice")
+            self._add_file_to_index(self.peer_id, filename)
 
     def remove_local_file(self, filename):
         path = os.path.join(self.dir, filename)
@@ -343,13 +367,13 @@ class Peer:
                     ns = Pyro5.api.locate_ns()
                     uri = ns.lookup(f"Tracker_Epoca_{self.tracker_epoch}")
                     self.tracker = Pyro5.api.Proxy(uri)
-                    self.tracker.register_files(self.peer_id, list(self.files))
+                    self.tracker.register_file_removal(self.peer_id, filename)
+                    print(f"[{self.peer_id}] Remoção do arquivo '{filename}' registrada com o tracker")
                 except Exception as e:
-                    print(f"[{self.peer_id}] Erro ao registrar arquivos no tracker: {e}")
+                    print(f"[{self.peer_id}] Erro ao registrar remoção no tracker: {e}")
             else:
                 # Se for o tracker, atualiza seu próprio índice
-                self._update_index(self.peer_id, list(self.files))
-                print(f"[{self.peer_id}] Tracker removeu arquivo local e atualizou o índice")
+                self._remove_file_from_index(self.peer_id, filename)
 
 class CLI(cmd.Cmd):
     intro = "CLI P2P iniciado. Digite help para comandos."

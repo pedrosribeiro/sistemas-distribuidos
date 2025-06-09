@@ -1,0 +1,72 @@
+[
+    {
+        "id": "1",
+        "navio": "Oceanic Dream",
+        "porto_embarque": "Santos",
+        "porto_desembarque": "Santos",
+        "lugares_visitados": ["Ilhabela", "Rio de Janeiro", "Búzios"],
+        "numero_noites": 7,
+        "valor_por_pessoa": 2999.9,
+        "datas_embarque": ["2025-07-10", "2025-08-10"]
+    },
+    {
+        "id": "2",
+        "navio": "Caribbean Sun",
+        "porto_embarque": "Fortaleza",
+        "porto_desembarque": "Fortaleza",
+        "lugares_visitados": ["Barbados", "St. Lucia", "Bahamas"],
+        "numero_noites": 10,
+        "valor_por_pessoa": 4999.9,
+        "datas_embarque": ["2025-09-10", "2025-10-10"]
+    },
+    {
+        "id": "3",
+        "navio": "Pacific Explorer",
+        "porto_embarque": "Rio de Janeiro",
+        "porto_desembarque": "Rio de Janeiro",
+        "lugares_visitados": ["Salvador", "Recife", "Natal"],
+        "numero_noites": 5,
+        "valor_por_pessoa": 1999.9,
+        "datas_embarque": ["2025-06-15", "2025-07-15"]
+    },
+    {
+        "id": "4",
+        "navio": "Mediterranean Breeze",
+        "porto_embarque": "Barcelona",
+        "porto_desembarque": "Barcelona",
+        "lugares_visitados": ["Rome", "Athens", "Santorini"],
+        "numero_noites": 12,
+        "valor_por_pessoa": 5999.9,
+        "datas_embarque": ["2025-05-20", "2025-06-20"]
+    },
+    {
+        "id": "5",
+        "navio": "Arctic Voyager",
+        "porto_embarque": "Oslo",
+        "porto_desembarque": "Oslo",
+        "lugares_visitados": ["Bergen", "Tromsø", "Svalbard"],
+        "numero_noites": 14,
+        "valor_por_pessoa": 7999.9,
+        "datas_embarque": ["2025-12-01", "2025-12-15"]
+    },
+    {
+        "id": "6",
+        "navio": "Asian Serenity",
+        "porto_embarque": "Singapore",
+        "porto_desembarque": "Singapore",
+        "lugares_visitados": ["Bangkok", "Ho Chi Minh City", "Manila"],
+        "numero_noites": 8,
+        "valor_por_pessoa": 3999.9,
+        "datas_embarque": ["2025-03-10", "2025-04-10"]
+    },
+    {
+        "id": "7",
+        "navio": "Southern Star",
+        "porto_embarque": "Sydney",
+        "porto_desembarque": "Sydney",
+        "lugares_visitados": ["Melbourne", "Hobart", "Auckland"],
+        "numero_noites": 9,
+        "valor_por_pessoa": 4599.9,
+        "datas_embarque": ["2025-11-05", "2025-12-05"]
+    }
+]

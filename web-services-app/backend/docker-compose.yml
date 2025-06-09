@@ -1,0 +1,82 @@
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
+    healthcheck:
+      test: [ "CMD", "rabbitmqctl", "status" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - cruise_net
+
+  ms_bilhete:
+    build:
+      context: .
+      dockerfile: app/ms_bilhete/Dockerfile
+    container_name: ms_bilhete
+    env_file:
+      - .env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - cruise_net
+
+  ms_pagamento:
+    build:
+      context: .
+      dockerfile: app/ms_pagamento/Dockerfile
+    container_name: ms_pagamento
+    env_file:
+      - .env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - cruise_net
+
+  ms_reserva:
+    build:
+      context: .
+      dockerfile: app/ms_reserva/Dockerfile
+    container_name: ms_reserva
+    env_file:
+      - .env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - cruise_net
+    volumes:
+      - reservas_data:/app/app/ms_reserva/data
+
+  ui:
+    build:
+      context: .
+      dockerfile: app/ui/Dockerfile
+    container_name: cruise_ui
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - cruise_net
+    volumes:
+      - reservas_data:/app/app/ms_reserva/data
+
+networks:
+  cruise_net:
+    driver: bridge
+
+volumes:
+  reservas_data:

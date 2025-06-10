@@ -53,5 +53,26 @@ def consultar_itinerarios():
     except Exception as e:
         return jsonify({"erro": "Erro interno do servidor"}), 500
 
+
+@app.route('/api/itinerarios/<int:itinerarioId>', methods=['GET'])
+def get_itinerario(itinerarioId):
+    """Consultar itinerários disponíveis"""
+    try:
+        # Carregar itinerários do arquivo JSON
+        if not ITINERARIOS_PATH.exists():
+            return jsonify([])
+        
+        with open(ITINERARIOS_PATH, "r", encoding="utf-8") as f:
+            itinerarios = json.load(f)
+
+        for itinerario in itinerarios:
+            if str(itinerario['id']) == str(itinerarioId):
+                return jsonify(itinerario)
+        # Se não encontrou, retorna 404
+        return jsonify({"erro": "Itinerário não encontrado"}), 404
+        
+    except Exception as e:
+        return jsonify({"erro": "Erro interno do servidor"}), 500
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5002, debug=True)

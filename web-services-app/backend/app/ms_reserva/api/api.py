@@ -59,6 +59,21 @@ def consultar_itinerarios():
     
     return jsonify(itinerarios), 200
 
+@app.route('/api/itinerarios/<int:itinerarioId>', methods=['GET'])
+def get_itinerario(itinerarioId):
+    # Fazer requisição REST para o MS Itinerários
+    response = requests.get(
+        f"{ITINERARIOS_SERVICE_URL}/api/itinerarios/{itinerarioId}",
+        timeout=10
+    )
+
+    response.raise_for_status()
+    itinerario = response.json()
+    if not itinerario:
+        return jsonify([]), 501
+    
+    return jsonify(itinerario), 200
+
 @app.route('/api/reservas', methods=['POST'])
 def efetuar_reserva():
     """Efetuar uma reserva"""
@@ -66,7 +81,7 @@ def efetuar_reserva():
         dados = request.get_json()
         
         # Validar dados obrigatórios
-        campos_obrigatorios = ['itinerario_id', 'data_embarque', 'numero_passageiros', 'numero_cabines', 'cliente_id']
+        campos_obrigatorios = ['itinerario_id', 'data_embarque', 'numero_passageiros', 'numero_cabines', 'cliente_id', 'valor_por_pessoa']
         for campo in campos_obrigatorios:
             if campo not in dados:
                 return jsonify({"erro": f"Campo obrigatório ausente: {campo}"}), 400
@@ -77,7 +92,8 @@ def efetuar_reserva():
             data_embarque=dados['data_embarque'],
             numero_passageiros=dados['numero_passageiros'],
             numero_cabines=dados['numero_cabines'],
-            cliente_id=dados['cliente_id']
+            cliente_id=dados['cliente_id'],
+            valor_por_pessoa=dados['valor_por_pessoa'],
         )
         
         if not reserva:
@@ -87,38 +103,62 @@ def efetuar_reserva():
         publicar_reserva(reserva)
         
         # Solicitar link de pagamento ao MS Pagamento
-        response = requests.post(
-            f"{PAGAMENTO_SERVICE_URL}/api/pagamento/link",
-            json={
-                'reserva_id': reserva['reserva_id'],
-                'valor': reserva['valor_total'],
-                'cliente_id': reserva['cliente_id']
-            },
-            timeout=10
-        )
-        
-        if response.status_code == 200:
-            pagamento_data = response.json()
-            reserva['link_pagamento'] = pagamento_data.get('link_pagamento')
+        try:
+            response = requests.post(
+                f"{PAGAMENTO_SERVICE_URL}/api/pagamento/link",
+                json={
+                    'reserva_id': reserva['reserva_id'],
+                    'valor': reserva['valor'],
+                    'cliente_id': reserva['cliente_id']
+                },
+                timeout=10
+            )
+            if response.status_code == 200:
+                try:
+                    pagamento_data = response.json()
+                    reserva['link_pagamento'] = pagamento_data.get('link_pagamento')
+                except Exception as e:
+                    reserva['link_pagamento'] = 'PRIMEIRA'
+                    logging.error(f"Erro ao decodificar JSON do pagamento: {e}")
+            else:
+                reserva['link_pagamento'] = 'SEGUNDOI'
+                logging.error(f"Erro ao solicitar link de pagamento: {response.status_code} {response.text}")
+        except Exception as e:
+            reserva['link_pagamento'] = 'TECERIRO'
+            logging.error(f"Erro na requisição ao MS Pagamento: {e}")
         
         return jsonify(reserva), 201
 
     except Exception as e:
-        return jsonify({"erro": "Erro interno do servidor"}), 500
+        return jsonify({"erro": f"{e}"}), 500
+
 
 @app.route('/api/reservas/<reserva_id>/cancelar', methods=['DELETE'])
-def cancelar_reserva(reserva_id):
+def cancelar_reserva_endpoint(reserva_id):
     """Cancelar uma reserva"""
     try:
-        resultado = cancelar_reserva(reserva_id)
-        
-        if resultado:
-            return jsonify({"mensagem": "Reserva cancelada com sucesso"}), 200
-        else:
+        # Carregar reservas
+        if not RESERVAS_PATH.exists():
             return jsonify({"erro": "Reserva não encontrada"}), 404
-            
+        with open(RESERVAS_PATH, "r", encoding="utf-8") as f:
+            reservas = json.load(f)
+        reserva_cancelada = None
+        for reserva in reservas:
+            if reserva["reserva_id"] == reserva_id:
+                reserva_cancelada = reserva
+                reservas.remove(reserva)
+                break
+        if not reserva_cancelada:
+            return jsonify({"erro": "Reserva não encontrada"}), 404
+        # Salvar reservas atualizadas
+        with open(RESERVAS_PATH, "w", encoding="utf-8") as f:
+            json.dump(reservas, f, indent=2)
+        # Publicar evento na fila 'reserva-cancelada'
+        from app.ms_reserva.rabbitmq import publicar_reserva_cancelada
+        publicar_reserva_cancelada(reserva_cancelada)
+        return jsonify({"mensagem": "Reserva cancelada com sucesso"}), 200
     except Exception as e:
-        return jsonify({"erro": "Erro interno do servidor"}), 500
+        return jsonify({"erro": f"Erro interno do servidor: {str(e)}"}), 500
 
 # @app.route('/api/promocoes/interesse', methods=['POST'])
 # def registrar_interesse():
@@ -196,20 +236,20 @@ def cancelar_reserva(reserva_id):
     
 #     return Response(event_stream(), mimetype='text/event-stream')
 
-# @app.route('/api/reservas/<reserva_id>', methods=['GET'])
-# def obter_reserva(reserva_id):
-#     """Obter detalhes de uma reserva"""
-#     try:
-#         reserva = obter_reserva_por_id(reserva_id)
+@app.route('/api/reservas', methods=['GET'])
+def obter_reservas():
+    """Obter detalhes de uma reserva"""
+    try:
+        reserva = obter_todas_reservas()
         
-#         if reserva:
-#             return jsonify(reserva)
-#         else:
-#             return jsonify({"erro": "Reserva não encontrada"}), 404
+        if reserva:
+            return jsonify(reserva)
+        else:
+            return jsonify([]), 404
             
-#     except Exception as e:
-#         logging.error(f"[MS RESERVA] Erro ao obter reserva: {str(e)}")
-#         return jsonify({"erro": "Erro interno do servidor"}), 500
+    except Exception as e:
+        logging.error(f"[MS RESERVA] Erro ao obter reserva: {str(e)}")
+        return jsonify({"erro": "Erro interno do servidor"}), 500
 
 def enviar_notificacao_sse(cliente_id, dados, tipo_conexao='reserva'):
     """Enviar notificação via SSE para um cliente específico"""
@@ -224,24 +264,22 @@ def enviar_notificacao_sse(cliente_id, dados, tipo_conexao='reserva'):
             logging.error(f"[MS RESERVA] Erro ao enviar notificação SSE: {str(e)}")
             connections.pop(cliente_id, None)
 
-
-
 def criar_reserva(
     itinerario_id,
     data_embarque,
-    cliente,
-    num_passageiros,
+    cliente_id,
+    numero_passageiros,
     valor_por_pessoa,
-    num_cabines,
+    numero_cabines,
 ):
     reserva = {
         "reserva_id": str(uuid.uuid4()),
         "itinerario_id": itinerario_id,
         "data_embarque": data_embarque,
-        "cliente": cliente,
-        "num_passageiros": num_passageiros,
-        "num_cabines": num_cabines,
-        "valor": valor_por_pessoa * num_passageiros,
+        "cliente_id": cliente_id,
+        "numero_passageiros": numero_passageiros,
+        "numero_cabines": numero_cabines,
+        "valor": valor_por_pessoa * numero_passageiros,
         "status_pagamento": "pagamento_pendente",
         "status_bilhete": "nao_gerado",
         "data_criacao": datetime.now().isoformat(),
@@ -278,6 +316,18 @@ def cancelar_reserva(reserva_id):
             return True
     return False
 
+def obter_todas_reservas():
+    if not RESERVAS_PATH.exists():
+        return False
+    
+    with open(RESERVAS_PATH, "r", encoding="utf-8") as f:
+        reservas = json.load(f)
 
+    if not reservas:
+        return []
+        
+    return reservas
+            
+        
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5001, debug=True)

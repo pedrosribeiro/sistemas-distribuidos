@@ -1,11 +1,10 @@
-import base64
 import json
 import logging
 
 import pika
 from app.shared.config import RABBITMQ_HOST, RABBITMQ_PASS, RABBITMQ_USER
 
-def publicar_pagamento_aprovado(resultado, assinatura):
+def publicar_pagamento_aprovado(reserva_id):
     connection = pika.BlockingConnection(
         pika.ConnectionParameters(
             RABBITMQ_HOST,
@@ -15,8 +14,8 @@ def publicar_pagamento_aprovado(resultado, assinatura):
     channel = connection.channel()
 
     mensagem = {
-        "resultado": resultado,
-        "assinatura": base64.b64encode(assinatura).decode(),
+        "resultado": "pagamento_aprovado",
+        "reserva_id": reserva_id
     }
 
     # Declara a exchange do tipo fanout
@@ -37,7 +36,7 @@ def publicar_pagamento_aprovado(resultado, assinatura):
 
     connection.close()
 
-def publicar_pagamento_rejeitado(resultado, assinatura):
+def publicar_pagamento_recusado(reserva_id):
     connection = pika.BlockingConnection(
         pika.ConnectionParameters(
             RABBITMQ_HOST,
@@ -47,8 +46,8 @@ def publicar_pagamento_rejeitado(resultado, assinatura):
     channel = connection.channel()
 
     mensagem = {
-        "resultado": resultado,
-        "assinatura": base64.b64encode(assinatura).decode(),
+        "resultado": "pagamento_recusado",
+        "reserva_id": reserva_id
     }
 
     channel.queue_declare(queue="pagamento-recusado")

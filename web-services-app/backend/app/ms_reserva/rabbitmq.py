@@ -18,3 +18,17 @@ def publicar_reserva(reserva):
         exchange="", routing_key="reserva-criada", body=json.dumps(reserva)
     )
     connection.close()
+
+def publicar_reserva_cancelada(reserva):
+    connection = pika.BlockingConnection(
+        pika.ConnectionParameters(
+            host=RABBITMQ_HOST,
+            credentials=pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASS),
+        )
+    )
+    channel = connection.channel()
+    channel.queue_declare(queue="reserva-cancelada")
+    channel.basic_publish(
+        exchange="", routing_key="reserva-cancelada", body=json.dumps(reserva)
+    )
+    connection.close()

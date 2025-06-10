@@ -21,7 +21,7 @@ def send_test_reserva():
         "destino": "Caribe",
         "data_embarque": "2025-07-13",
         "num_passageiros": 2,
-        "num_cabines": 1,
+        "numero_cabines": 1,
         "valor": 4999.90,
     }
 

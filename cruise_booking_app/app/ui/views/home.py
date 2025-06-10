@@ -34,8 +34,8 @@ def mostrar_itinerarios():
 def reservar(itinerario_id, datas_embarque, valor_por_pessoa):
     if request.method == "POST":
         cliente = request.form["cliente"]
-        num_passageiros = int(request.form["num_passageiros"])
-        num_cabines = int(request.form["num_cabines"])
+        num_passageiros = int(request.form["numer_passageiros"])
+        numero_cabines = int(request.form["nummero_cabines"])
         data_embarque = request.form["data_embarque"]
         valor_por_pessoa = float(request.form["valor_por_pessoa"])
 

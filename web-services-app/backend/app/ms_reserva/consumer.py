@@ -59,9 +59,9 @@ def processar_pagamento(ch, method, properties, body):
     data = json.loads(body)
 
     resultado = data.get("resultado")  # aprovado ou recusado
+    reserva_id = data.get("reserva_id")
 
-    status = resultado["status"]
-    atualizar_reserva_status_pagamento(resultado["reserva_id"], status)
+    atualizar_reserva_status_pagamento(reserva_id, resultado)
 
 
 def processar_bilhete(ch, method, properties, body):

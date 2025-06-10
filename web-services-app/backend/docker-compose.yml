@@ -81,6 +81,18 @@ services:
       - cruise_net
     ports:
       - "5001:5001"
+    volumes:
+      - reservas_data:/app/app/ms_reserva/data
+    
+  external_payment_service:
+    build:
+      context: ../external_payment_service
+      dockerfile: Dockerfile
+    container_name: external_payment_service
+    ports:
+      - "5050:5050"
+    networks:
+      - cruise_net
 
 networks:
   cruise_net:

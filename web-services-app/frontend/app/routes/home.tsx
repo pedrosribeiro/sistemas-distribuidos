@@ -16,9 +16,9 @@ interface Reserva {
     itinerario_id: string;
     data_embarque: string;
     cliente: string;
-    num_passageiros: number;
+    numero_passageiros: number;
     valor_por_pessoa: number;
-    num_cabines: number;
+    numero_cabines: number;
     valor_total: number;
     data_criacao: string;
 }
@@ -111,10 +111,10 @@ export default function Home() {
 
         const formData = new FormData(e.target as HTMLFormElement);
         const cliente = formData.get("cliente") as string;
-        const num_passageiros = parseInt(
-            formData.get("num_passageiros") as string
+        const numero_passageiros = parseInt(
+            formData.get("numero_passageiros") as string
         );
-        const num_cabines = parseInt(formData.get("num_cabines") as string);
+        const numero_cabines = parseInt(formData.get("numero_cabines") as string);
         const data_embarque = formData.get("data_embarque") as string;
 
         setLoading(true);

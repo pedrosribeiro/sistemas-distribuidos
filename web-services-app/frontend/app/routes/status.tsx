@@ -4,22 +4,15 @@ import { Link } from "react-router";
 // Tipos para o sistema de reservas
 interface Reserva {
     reserva_id: string;
-    cliente: string;
-    num_passageiros: number;
-    num_cabines: number;
+    cliente_id: string;
+    numero_passageiros: number;
+    numero_cabines: number;
     data_embarque: string;
     valor: number;
     status_pagamento: string;
     status_bilhete: string;
     data_criacao: string;
     status?: string;
-}
-
-interface ApiResponse {
-    success: boolean;
-    data: Reserva[];
-    total: number;
-    error?: string;
 }
 
 export function meta() {
@@ -45,17 +38,12 @@ export default function Status() {
         try {
             const response = await fetch('http://localhost:5001/api/reservas');
             
-            if (!response.ok) {
-                throw new Error(`Erro na requisição: ${response.status}`);
-            }
+            const data = await response.json();
             
-            const data: ApiResponse = await response.json();
-            
-            if (data.success) {
-                setReservas(data.data || []);
-            } else {
-                setError(data.error || 'Erro ao carregar reservas');
-            }
+            if(data)
+                setReservas(data);
+            else
+                setReservas([])
             
         } catch (err) {
             console.error('Erro ao carregar reservas:', err);
@@ -101,6 +89,25 @@ export default function Status() {
                 return 'text-gray-600 bg-gray-100';
             default:
                 return 'text-gray-600 bg-gray-100';
+        }
+    };
+
+    // Função para cancelar reserva
+    const cancelarReserva = async (reserva_id: string) => {
+        if (!window.confirm('Tem certeza que deseja cancelar esta reserva?')) return;
+        try {
+            const response = await fetch(`http://localhost:5001/api/reservas/${reserva_id}/cancelar`, {
+                method: 'DELETE',
+            });
+            if (!response.ok) {
+                const data = await response.json();
+                alert(data.erro || 'Erro ao cancelar reserva');
+            } else {
+                alert('Reserva cancelada com sucesso!');
+                carregarReservas();
+            }
+        } catch (err) {
+            alert('Erro ao conectar com o servidor');
         }
     };
 
@@ -196,6 +203,9 @@ export default function Status() {
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Status Bilhete
                                         </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Ações
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
@@ -205,13 +215,13 @@ export default function Status() {
                                                 {reserva.reserva_id.substring(0, 8)}...
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                {reserva.cliente}
+                                                {reserva.cliente_id}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                {reserva.num_passageiros}
+                                                {reserva.numero_passageiros}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                {reserva.num_cabines}
+                                                {reserva.numero_cabines}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                                 {formatarData(reserva.data_embarque)}
@@ -228,6 +238,14 @@ export default function Status() {
                                                 <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(reserva.status_bilhete)}`}>
                                                     {reserva.status_bilhete.replace('_', ' ')}
                                                 </span>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <button
+                                                    onClick={() => cancelarReserva(reserva.reserva_id)}
+                                                    className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-xs"
+                                                >
+                                                    Cancelar
+                                                </button>
                                             </td>
                                         </tr>
                                     ))}

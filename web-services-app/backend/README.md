@@ -12,7 +12,6 @@ Or, to run the services in detached mode, use:
 docker-compose up --build -d
 ```
 
-
 ## Accessing UIs via Browser
 
 - **Cruise Booking Application UI**: Accessible at [http://localhost:5000](http://localhost:5000). This is the main interface for managing cruise bookings.

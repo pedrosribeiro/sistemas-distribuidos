@@ -4,7 +4,7 @@ import { Link } from "react-router";
 // Tipos para o sistema
 interface Itinerario {
     id: string;
-    destino: string;
+    lugares_visitados: string[];
     datas_embarque: string[];
     porto_embarque: string;
     valor_por_pessoa: number;
@@ -60,7 +60,15 @@ export default function Home() {
             params.set("porto_embarque", filtros.porto_embarque);
 
         const response = await fetch(
-            `http://localhost:5000/api/itinerarios?${params.toString()}`
+            `http://localhost:5001/api/itinerarios?${params.toString()}`,
+            {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                    "mode": "cors"
+                },
+            }
+
         );
 
         const itinerarios = await response.json();
@@ -128,7 +136,7 @@ export default function Home() {
                     <p className="text-xl text-gray-600">
                         Encontre e reserve o cruzeiro dos seus sonhos
                     </p>
-                    
+
                     {/* Menu de Navegação */}
                     <div className="mt-8 flex justify-center space-x-4">
                         <Link
@@ -236,11 +244,17 @@ export default function Home() {
                         >
                             <div className="p-6 h-full flex flex-col justify-between">
                                 <h3 className="text-xl font-bold text-gray-900 mb-2">
-                                    {itinerario.destino}
+                                    {itinerario.lugares_visitados[itinerario.lugares_visitados.length - 1]}
                                 </h3>
                                 <p className="text-gray-600 mb-4">
                                     {itinerario.descricao}
                                 </p>
+                                <h3 className="text-sm font-bold text-gray-600">Lugares Visitados</h3>
+                                <ul className="text-gray-500 text-sm mb-4">
+                                    {itinerario.lugares_visitados.map((lugar: string, index: number) => (
+                                        <li key={lugar}>{lugar}</li>
+                                    ))}
+                                </ul>
 
                                 <div className="space-y-2 mb-4">
                                     <div className="flex justify-between">
@@ -299,5 +313,5 @@ export default function Home() {
                 )}
             </div>
         </div>
-    );
+    )
 }

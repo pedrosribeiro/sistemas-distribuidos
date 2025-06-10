@@ -3,7 +3,7 @@ import logging
 import uuid
 from datetime import datetime
 
-from backend.app.ms_pagamento.rabbitmq import publicar_pagamento_aprovado, publicar_pagamento_rejeitado
+from app.ms_pagamento.rabbitmq import publicar_pagamento_aprovado, publicar_pagamento_rejeitado
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 

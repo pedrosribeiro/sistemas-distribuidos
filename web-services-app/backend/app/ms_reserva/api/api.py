@@ -168,6 +168,7 @@ def cancelar_reserva_endpoint(reserva_id):
     except Exception as e:
         return jsonify({"erro": f"Erro interno do servidor: {str(e)}"}), 500
 
+
 def registrar_interesse_promocoes(cliente_id):
     INTERESSES_PATH.parent.mkdir(parents=True, exist_ok=True)
     if INTERESSES_PATH.exists():
@@ -219,6 +220,17 @@ def sse_notificacoes(tipo, cliente_id):
     return Response(event_stream(cliente_id, connections), mimetype='text/event-stream')
 
 
+@app.route('/api/sse/cancelar_promocoes/<cliente_id>', methods=['GET'])
+def cancelar_promocoes(cliente_id):
+    if cliente_id in promocoes_connections:
+        promocoes_connections.pop(cliente_id, None)
+        logging.info(f"[MS RESERVA] Cliente {cliente_id} desconectado das promoções.")
+        return jsonify({"mensagem": "Desconectado das promoções com sucesso"}), 200
+    else:
+        logging.warning(f"[MS RESERVA] Cliente {cliente_id} não está conectado às promoções.")
+        return jsonify({"erro": "Cliente não está conectado às promoções"}), 404
+
+
 @app.route('/api/reservas', methods=['GET'])
 def obter_reservas():
     """Obter detalhes de uma reserva"""
@@ -238,26 +250,42 @@ def obter_reservas():
 def enviar_notificacao_sse():
     """Enviar notificação via SSE para um cliente específico"""
     dados_requisicao = request.get_json()
-    cliente_id = dados_requisicao.get('cliente_id')
-    mensagem = dados_requisicao.get('mensagem')
     tipo_conexao = dados_requisicao.get('tipo_conexao', 'reserva')
 
-    connections = sse_connections if tipo_conexao == 'reserva' else promocoes_connections
-    conn = connections.get(cliente_id)
+    if tipo_conexao == "promocao":
+        connections = promocoes_connections
+        mensagem = dados_requisicao.get('mensagem')
 
-    if conn:
-        try:
-            payload = {"tipo": "notificacao", "mensagem": mensagem}
-            conn.put(payload)  # insere na fila
-            logging.info(f"[MS RESERVA] Notificação SSE enviada para {cliente_id}: {payload}")
-            return jsonify({"mensagem": "Notificação enviada"}), 200
-        except Exception as e:
-            logging.error(f"[MS RESERVA] Erro ao enviar notificação SSE: {str(e)}")
-            connections.pop(cliente_id, None)
-            return jsonify({"erro": "Erro ao enviar notificação"}), 500
+        for conn in connections.values(): 
+            try:
+                payload = {"tipo": "notificacao", "mensagem": mensagem}
+                conn.put(payload)  # insere na fila
+                logging.info(f"[MS RESERVA] Notificação SSE enviada: {payload}")
+            except Exception as e:
+                logging.error(f"[MS RESERVA] Erro ao enviar notificação SSE: {str(e)}")
+                return jsonify({"erro": "Erro ao enviar notificação"}), 500
+        
+        return jsonify({"mensagem": "Notificação enviada"}), 200
     else:
-        logging.warning(f"[MS RESERVA] Nenhuma conexão SSE ativa para {cliente_id}")
-        return jsonify({"erro": "Nenhuma conexão SSE ativa para o cliente"}), 404
+        connections = sse_connections
+        dados_requisicao = request.get_json()
+        cliente_id = dados_requisicao.get('cliente_id')
+        mensagem = dados_requisicao.get('mensagem')
+        conn = connections.get(cliente_id)
+    
+        if conn:
+            try:
+                payload = {"tipo": "notificacao", "mensagem": mensagem}
+                conn.put(payload)  # insere na fila
+                logging.info(f"[MS RESERVA] Notificação SSE enviada para {cliente_id}: {payload}")
+                return jsonify({"mensagem": "Notificação enviada"}), 200
+            except Exception as e:
+                logging.error(f"[MS RESERVA] Erro ao enviar notificação SSE: {str(e)}")
+                connections.pop(cliente_id, None)
+                return jsonify({"erro": "Erro ao enviar notificação"}), 500
+        else:
+            logging.warning(f"[MS RESERVA] Nenhuma conexão SSE ativa para {cliente_id}")
+            return jsonify({"erro": "Nenhuma conexão SSE ativa para o cliente"}), 404
 
 def criar_reserva(
     itinerario_id,

@@ -130,7 +130,7 @@ export default function Status() {
                     <p className="text-gray-600 mb-4">{error}</p>
                     <button
                         onClick={carregarReservas}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition duration-200"
+                        className="hover:cursor-pointer px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition duration-200"
                     >
                         Tentar Novamente
                     </button>
@@ -166,7 +166,7 @@ export default function Status() {
                 <div className="mb-6 flex justify-end">
                     <button
                         onClick={carregarReservas}
-                        className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition duration-200"
+                        className="hover:cursor-pointer inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition duration-200"
                     >
                         🔄 Atualizar
                     </button>
@@ -242,7 +242,7 @@ export default function Status() {
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <button
                                                     onClick={() => cancelarReserva(reserva.reserva_id)}
-                                                    className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-xs"
+                                                    className="hover:cursor-pointer px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-xs"
                                                 >
                                                     Cancelar
                                                 </button>

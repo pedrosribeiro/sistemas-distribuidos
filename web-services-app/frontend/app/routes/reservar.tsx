@@ -31,9 +31,17 @@ export function meta() {
     ];
 }
 
+function setCookie(name: string, value: string, days = 30) {
+    const expires = new Date(Date.now() + days*24*60*60*1000).toUTCString();
+    document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/`;
+}
+
+function getCookie(name: string) {
+    return document.cookie.split('; ').find(row => row.startsWith(name + '='))?.split('=')[1];
+}
+
 export default function Reservar() {
     const { itinerarioId } = useParams();
-    const navigate = useNavigate();
 
     const [itinerario, setItinerario] = useState<Itinerario | null>(null);
     const [loading, setLoading] = useState(false);
@@ -45,7 +53,7 @@ export default function Reservar() {
         data_embarque: "",
         numero_passageiros: 1,
         numero_cabines: 1,
-        cliente_id: "",
+        cliente_id: getCookie("clienteId") || "",
     });
 
     // Carregar dados do itinerário
@@ -312,12 +320,13 @@ export default function Reservar() {
                                 id="cliente_id"
                                 required
                                 value={formData.cliente_id}
-                                onChange={(e) =>
+                                onChange={(e) => {
                                     setFormData((prev) => ({
                                         ...prev,
                                         cliente_id: e.target.value,
                                     }))
-                                }
+                                    setCookie("clienteId", e.target.value)
+                                }}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white placeholder-gray-400"
                                 placeholder="Digite seu nome completo"
                             />
@@ -448,7 +457,7 @@ export default function Reservar() {
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="flex-1 bg-green-600 text-white py-3 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                className="hover:cursor-pointer flex-1 bg-green-600 text-white py-3 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                             >
                                 {loading ? (
                                     <>

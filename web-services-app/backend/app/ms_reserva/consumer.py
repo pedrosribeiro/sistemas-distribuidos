@@ -97,7 +97,21 @@ def processar_bilhete(ch, method, properties, body):
     atualizar_reserva_status_bilhete(reserva_id, "bilhete_gerado")
     enviar_notificacao_sse(cliente_id, f"Bilhete da reserva {reserva_id} gerado.", "reserva")
 
-def enviar_notificacao_sse(cliente_id, mensagem, tipo):
+def processar_promocoes(ch, method, properties, body):
+    data = json.loads(body)
+
+    mensagem = data.get("mensagem")
+    destino = data.get("destino")
+    valido_ate = data.get("valido_ate")
+
+    mensagem = f"Promoção: {mensagem} - Destino: {destino} - Válido até: {valido_ate}"
+
+    logging.info(f"[MS RESERVA] Promoções recebidas")
+    
+    enviar_notificacao_sse(mensagem=mensagem, tipo="promocao")
+
+
+def enviar_notificacao_sse(cliente_id=None, mensagem=None, tipo=None):
     try:
         requests.post(
             "http://ms_reserva_api:5001/api/enviar_notificacao_sse",
@@ -135,6 +149,7 @@ def start_consuming():
     # Continua declarando as outras filas normalmente
     channel.queue_declare(queue="pagamento-recusado")
     channel.queue_declare(queue="bilhete-gerado")
+    channel.queue_declare(queue="promocoes")
 
     channel.basic_consume(
         queue=pagamento_aprovado_queue,
@@ -148,6 +163,9 @@ def start_consuming():
     )
     channel.basic_consume(
         queue="bilhete-gerado", on_message_callback=processar_bilhete, auto_ack=True
+    )
+    channel.basic_consume(
+        queue="promocoes", on_message_callback=processar_promocoes, auto_ack=True
     )
 
     logging.info(

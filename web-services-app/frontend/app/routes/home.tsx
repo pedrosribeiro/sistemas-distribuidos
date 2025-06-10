@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Link } from "react-router";
+import { useState, useEffect, useRef } from "react";
+import { createCookie, Link } from "react-router";
 
 // Tipos para o sistema
 interface Itinerario {
@@ -40,14 +40,90 @@ export function meta() {
     ];
 }
 
+function setCookie(name: string, value: string, days = 30) {
+    if (typeof document === "undefined") return;
+    const expires = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toUTCString();
+    document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/`;
+}
+
+function getCookie(name: string) {
+    if (typeof document === "undefined") return "";
+    const value = document.cookie.split('; ').find(row => row.startsWith(name + '='))?.split('=')[1];
+    return value ? decodeURIComponent(value) : "";
+}
+
+function deleteCookie(name: string) {
+    if (typeof document === "undefined") return;
+    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+}
+
 export default function Home() {
     const [itinerarios, setItinerarios] = useState<Itinerario[]>([]);
     const [loading, setLoading] = useState(false);
+    const [notificacoes, setNotificacoes] = useState<string[]>([]);
+    const [clienteId, setClienteId] = useState<string>("");
     const [filtros, setFiltros] = useState<FiltroItinerarios>({
         destino: "",
         data_embarque: "",
         porto_embarque: "",
     });
+    const [isSubscribed, setIsSubscribed] = useState<boolean>(false);
+    const eventSourceRef = useRef<EventSource | null>(null);
+
+    // Inicializar clienteId do cookie ao carregar a página
+    useEffect(() => {
+        const savedClienteId = getCookie("clienteId");
+        if (savedClienteId) {
+            setClienteId(savedClienteId);
+            setIsSubscribed(true);
+            // Conectar automaticamente ao SSE se já houver um clienteId salvo
+            conectarSSE(savedClienteId);
+        }
+    }, []);
+
+    // Função para conectar ao SSE
+    const conectarSSE = (cliente: string) => {
+        // Fechar conexão anterior se existir
+        if (eventSourceRef.current) {
+            eventSourceRef.current.close();
+        }
+
+        const eventSource = new EventSource(
+            `http://localhost:5001/api/sse/promocoes/${encodeURIComponent(cliente)}`
+        );
+        
+        eventSource.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                if (data.tipo !== 'heartbeat') {
+                    setNotificacoes(prev => [...prev, `Promoção: ${JSON.stringify(data.mensagem)}`]);
+                }
+            } catch {
+                setNotificacoes(prev => [...prev, `Promoção: ${event.data}`]);
+            }
+        };
+
+        eventSource.onerror = (error) => {
+            console.error("Erro na conexão SSE:", error);
+        };
+
+        eventSourceRef.current = eventSource;
+    };
+
+    // Função para desconectar do SSE
+    const desconectarSSE = () => {
+        if (eventSourceRef.current) {
+            eventSourceRef.current.close();
+            eventSourceRef.current = null;
+        }
+    };
+
+    // Limpar conexão SSE ao desmontar o componente
+    useEffect(() => {
+        return () => {
+            desconectarSSE();
+        };
+    }, []);
 
     const consultarItinerarios = async (
         filtros?: Partial<FiltroItinerarios>
@@ -106,30 +182,72 @@ export default function Home() {
         }
     };
 
-    // Função para processar reserva
-    const handleReservar = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handlePromocao = async () => {
+        if (clienteId) {
+            try {
+                // Salvar clienteId no cookie
+                setCookie("clienteId", clienteId);
+                setIsSubscribed(true);
 
-        const formData = new FormData(e.target as HTMLFormElement);
-        const cliente = formData.get("cliente") as string;
-        const numero_passageiros = parseInt(
-            formData.get("numero_passageiros") as string
-        );
-        const numero_cabines = parseInt(formData.get("numero_cabines") as string);
-        const data_embarque = formData.get("data_embarque") as string;
-
-        setLoading(true);
-        try {
-        } catch (error) {
-            console.error("Erro ao criar reserva:", error);
-        } finally {
-            setLoading(false);
+                // Conectar ao SSE
+                conectarSSE(clienteId);
+                
+                setNotificacoes(prev => [...prev, `Você está inscrito para receber promoções!`]);
+            } catch (error) {
+                console.error("Erro ao registrar interesse em promoções:", error);
+                setNotificacoes(prev => [...prev, `Erro ao registrar interesse em promoções`]);
+            }
         }
-    };
+    }
+
+    const handleCancelarPromocao = async () => {
+        if (clienteId) {
+            try {
+                // Cancelar interesse em promoções via API
+                const eventSource = new EventSource(
+                    `http://localhost:5001/api/sse/cancelar_promocoes/${encodeURIComponent(clienteId)}`
+                );
+                eventSource.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        if (data.tipo !== 'heartbeat') {
+                            setNotificacoes(prev => [...prev, `Notificação: ${JSON.stringify(data.mensagem)}`]);
+                        }
+                    } catch {
+                        setNotificacoes(prev => [...prev, `Notificação: ${event.data.mensagem}`]);
+                    }
+                };
+                
+                // Remover cookie
+                deleteCookie("clienteId");
+                
+                // Resetar estados
+                setIsSubscribed(false);
+                setClienteId("");
+                
+                setNotificacoes(prev => [...prev, `Notificações de promoção desativadas!`]);
+            } catch (error) {
+                console.error("Erro ao cancelar interesse em promoções:", error);
+                setNotificacoes(prev => [...prev, `Erro ao cancelar interesse em promoções`]);
+            }
+        }
+    }
 
     return (
         <div className="min-h-screen bg-gray-50 py-12 px-4">
-            <div className="max-w-6xl mx-auto">
+            <div className="max-w-6xl mx-auto relative">
+                <div className="flex flex-col gap-2 absolute -top-6 -right-2 border rounded-lg border-gray-500 text-gray-500 text-sm bg-white max-w-[350px] p-2">
+                    {notificacoes.length > 0 ? (notificacoes.map((notificacao, index) => (
+                        <div key={index} className="flex flex-row justify-between text-xs border border-gray-500 bg-white text-black px-4 py-2 rounded-lg shadow-md">
+                            {notificacao}
+                            <button className="px-2 py-1 h-fit hover:bg-red-500/20 hover:cursor-pointer text-center place-self-end border border-gray-500 rounded-lg " onClick={() => {
+                                setNotificacoes(notificacoes.filter((_, i) => i !== index))
+                            }}>
+                                Excluir
+                            </button>
+                        </div>
+                    ))) : "Sem notificações"}
+                </div>
                 <div className="text-center mb-12">
                     <h1 className="text-4xl font-bold text-gray-900 mb-4">
                         Sistema de Reservas de Cruzeiros
@@ -146,6 +264,36 @@ export default function Home() {
                         >
                             📊 Ver Status das Reservas
                         </Link>
+                        <div className="flex flex-col gap-2">
+                            {!isSubscribed ? (
+                                <input
+                                    type="text"
+                                    placeholder="Informe seu nome para receber promoções"
+                                    value={clienteId}
+                                    className="border rounded-md text-black h-fit p-2"
+                                    onChange={(e) => setClienteId(e.target.value)}
+                                    disabled={isSubscribed}
+                                />
+                            ) : (
+                                <p className="text-sm text-gray-500">Cliente: {clienteId}</p>
+                            )}
+                            <div className="flex flex-row gap-2">
+                                <button
+                                    disabled={!clienteId || isSubscribed}
+                                    onClick={handlePromocao}
+                                    className="hover:cursor-pointer bg-green-500 text-sm inline-flex items-center px-6 py-3 text-white rounded-md hover:bg-green-600 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    Desejo receber promoções
+                                </button>
+                                <button
+                                    disabled={!isSubscribed}
+                                    onClick={handleCancelarPromocao}
+                                    className="hover:cursor-pointer text-sm bg-red-500 inline-flex items-center px-6 py-3 text-white rounded-md hover:bg-red-600 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    Desativar notificações de promoção
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -228,7 +376,7 @@ export default function Home() {
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 transition-colors"
+                                className="hover:cursor-pointer w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 transition-colors"
                             >
                                 {loading ? "Buscando..." : "Buscar"}
                             </button>
@@ -301,7 +449,7 @@ export default function Home() {
                                         to={`/reservar/${itinerario.id}`}
                                         className="w-full"
                                     >
-                                        <button className="cursor-pointer w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors">
+                                        <button className="hover:cursor-pointer w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors">
                                             Reservar Agora
                                         </button>
                                     </Link>

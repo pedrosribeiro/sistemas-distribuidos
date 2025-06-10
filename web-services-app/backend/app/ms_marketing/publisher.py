@@ -20,15 +20,15 @@ def publicar_promocao(promocao: dict):
     )
     channel = connection.channel()
 
-    # Declare a fanout exchange
-    exchange_name = "promocoes_exchange"
-    channel.exchange_declare(exchange=exchange_name, exchange_type="direct")
+    # Declare a normal queue
+    queue_name = "promocoes"
+    channel.queue_declare(queue=queue_name, durable=False)
 
     channel.basic_publish(
-        exchange=exchange_name,
-        routing_key=promocao["destino"],
+        exchange='',
+        routing_key=queue_name,
         body=json.dumps(promocao),
     )
 
-    logging.info(f"[MS MARKETING] Promoção publicada na exchange: {exchange_name}")
+    logging.info(f"[MS MARKETING] Promoção publicada na fila: {queue_name}")
     connection.close()

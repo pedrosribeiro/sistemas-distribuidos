@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pika
 from app.shared.config import RABBITMQ_HOST, RABBITMQ_PASS, RABBITMQ_USER
+import requests
 
 logging.basicConfig(
     level=logging.INFO,
@@ -61,15 +62,54 @@ def processar_pagamento(ch, method, properties, body):
     resultado = data.get("resultado")  # aprovado ou recusado
     reserva_id = data.get("reserva_id")
 
+    if not RESERVAS_PATH.exists():
+        logging.info(f"[MS RESERVA] Arquivo de reservas não encontrado.")
+        return
+
+    with open(RESERVAS_PATH, "r", encoding="utf-8") as f:
+        reservas = json.load(f)
+
+    for r in reservas:
+        if r["reserva_id"] == reserva_id:
+            cliente_id = r["cliente_id"]
+
     atualizar_reserva_status_pagamento(reserva_id, resultado)
+    enviar_notificacao_sse(cliente_id, f"Novo status do pagamento da reserva {reserva_id}: {resultado}.", "reserva")
+    
 
 
 def processar_bilhete(ch, method, properties, body):
     data = json.loads(body)
     reserva_id = data.get("reserva_id")
+
+    if not RESERVAS_PATH.exists():
+        logging.info(f"[MS RESERVA] Arquivo de reservas não encontrado.")
+        return
+
+    with open(RESERVAS_PATH, "r", encoding="utf-8") as f:
+        reservas = json.load(f)
+
+    for r in reservas:
+        if r["reserva_id"] == reserva_id:
+            cliente_id = r["cliente_id"]
+
     logging.info(f"[MS RESERVA] Bilhete gerado para reserva {reserva_id}")
     atualizar_reserva_status_bilhete(reserva_id, "bilhete_gerado")
+    enviar_notificacao_sse(cliente_id, f"Bilhete da reserva {reserva_id} gerado.", "reserva")
 
+def enviar_notificacao_sse(cliente_id, mensagem, tipo):
+    try:
+        requests.post(
+            "http://ms_reserva_api:5001/api/enviar_notificacao_sse",
+            json={
+                "cliente_id": cliente_id,
+                "mensagem": mensagem,
+                "tipo_conexao": tipo
+            },
+            timeout=3
+        )
+    except Exception as e:
+        logging.error(f"[MS RESERVA] Erro ao enviar notificação SSE: {e}")
 
 def start_consuming():
     connection = pika.BlockingConnection(
@@ -114,3 +154,5 @@ def start_consuming():
         "[MS RESERVA] Aguardando mensagens de pagamento e bilhete (pagamento-aprovado via exchange fanout)..."
     )
     channel.start_consuming()
+
+

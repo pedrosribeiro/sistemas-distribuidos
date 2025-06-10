@@ -16,7 +16,8 @@ from datetime import datetime
 from pathlib import Path
 from app.ms_reserva.rabbitmq import publicar_reserva
 from app.ms_reserva.rabbitmq import publicar_reserva_cancelada
-from app.ms_reserva.api.api import INTERESSES_PATH
+
+from queue import Queue
 
 
 RESERVAS_PATH = Path("app/ms_reserva/data/reservas.json")
@@ -193,81 +194,30 @@ def cancelar_interesse_promocoes(cliente_id):
         return True
     return False
 
-# @app.route('/api/promocoes/interesse', methods=['POST'])
-# def registrar_interesse():
-#     """Registrar interesse em receber notificações de promoções"""
-#     try:
-#         dados = request.get_json()
-        
-#         if 'cliente_id' not in dados:
-#             return jsonify({"erro": "Campo obrigatório ausente: cliente_id"}), 400
-        
-#         cliente_id = dados['cliente_id']
-#         resultado = registrar_interesse_promocoes(cliente_id)
-        
-#         if resultado:
-#             logging.info(f"[MS RESERVA] Interesse em promoções registrado: {cliente_id}")
-#             return jsonify({"mensagem": "Interesse registrado com sucesso"}), 201
-#         else:
-#             return jsonify({"erro": "Erro ao registrar interesse"}), 500
-            
-#     except Exception as e:
-#         logging.error(f"[MS RESERVA] Erro ao registrar interesse: {str(e)}")
-#         return jsonify({"erro": "Erro interno do servidor"}), 500
 
-# @app.route('/api/promocoes/interesse/<cliente_id>', methods=['DELETE'])
-# def cancelar_interesse(cliente_id):
-#     """Cancelar interesse em receber notificações de promoções"""
-#     try:
-#         resultado = cancelar_interesse_promocoes(cliente_id)
-        
-#         if resultado:
-#             logging.info(f"[MS RESERVA] Interesse em promoções cancelado: {cliente_id}")
-#             return jsonify({"mensagem": "Interesse cancelado com sucesso"}), 200
-#         else:
-#             return jsonify({"erro": "Cliente não encontrado"}), 404
-            
-#     except Exception as e:
-#         logging.error(f"[MS RESERVA] Erro ao cancelar interesse: {str(e)}")
-#         return jsonify({"erro": "Erro interno do servidor"}), 500
+def event_stream(cliente_id, connections):
+    q = Queue()
+    connections[cliente_id] = q
+    logging.info(f"[MS RESERVA] Cliente conectado ao SSE: {cliente_id}")
+    try:
+        while True:
+            try:
+                # Espera uma mensagem por até 30 segundos
+                mensagem = q.get(timeout=30)
+            except:
+                # Envia heartbeat se não houver mensagem
+                mensagem = {"tipo": "heartbeat", "timestamp": datetime.now().isoformat()}
+            yield f"data: {json.dumps(mensagem)}\n\n"
+    except GeneratorExit:
+        logging.info(f"[MS RESERVA] Cliente desconectado do SSE: {cliente_id}")
+        connections.pop(cliente_id, None)
 
-# @app.route('/api/sse/reserva/<cliente_id>')
-# def sse_reserva(cliente_id):
-#     """Endpoint SSE para notificações de reserva"""
-#     def event_stream():
-#         # Registrar conexão
-#         sse_connections[cliente_id] = True
-#         logging.info(f"[MS RESERVA] Cliente conectado ao SSE de reserva: {cliente_id}")
-        
-#         try:
-#             while sse_connections.get(cliente_id, False):
-#                 # Manter conexão viva
-#                 yield f"data: {json.dumps({'tipo': 'heartbeat', 'timestamp': datetime.now().isoformat()})}\n\n"
-#                 time.sleep(30)
-#         except GeneratorExit:
-#             logging.info(f"[MS RESERVA] Cliente desconectado do SSE de reserva: {cliente_id}")
-#             sse_connections.pop(cliente_id, None)
-    
-#     return Response(event_stream(), mimetype='text/event-stream')
 
-# @app.route('/api/sse/promocoes/<cliente_id>')
-# def sse_promocoes(cliente_id):
-#     """Endpoint SSE para notificações de promoções"""
-#     def event_stream():
-#         # Registrar conexão
-#         promocoes_connections[cliente_id] = True
-#         logging.info(f"[MS RESERVA] Cliente conectado ao SSE de promoções: {cliente_id}")
-        
-#         try:
-#             while promocoes_connections.get(cliente_id, False):
-#                 # Manter conexão viva
-#                 yield f"data: {json.dumps({'tipo': 'heartbeat', 'timestamp': datetime.now().isoformat()})}\n\n"
-#                 time.sleep(30)
-#         except GeneratorExit:
-#             logging.info(f"[MS RESERVA] Cliente desconectado do SSE de promoções: {cliente_id}")
-#             promocoes_connections.pop(cliente_id, None)
-    
-#     return Response(event_stream(), mimetype='text/event-stream')
+@app.route('/api/sse/<tipo>/<cliente_id>', methods=['GET'])
+def sse_notificacoes(tipo, cliente_id):
+    connections = sse_connections if tipo == 'reserva' else promocoes_connections
+    return Response(event_stream(cliente_id, connections), mimetype='text/event-stream')
+
 
 @app.route('/api/reservas', methods=['GET'])
 def obter_reservas():
@@ -284,18 +234,30 @@ def obter_reservas():
         logging.error(f"[MS RESERVA] Erro ao obter reserva: {str(e)}")
         return jsonify({"erro": "Erro interno do servidor"}), 500
 
-def enviar_notificacao_sse(cliente_id, dados, tipo_conexao='reserva'):
+@app.route('/api/enviar_notificacao_sse', methods=['POST'])
+def enviar_notificacao_sse():
     """Enviar notificação via SSE para um cliente específico"""
+    dados_requisicao = request.get_json()
+    cliente_id = dados_requisicao.get('cliente_id')
+    mensagem = dados_requisicao.get('mensagem')
+    tipo_conexao = dados_requisicao.get('tipo_conexao', 'reserva')
+
     connections = sse_connections if tipo_conexao == 'reserva' else promocoes_connections
-    
-    if cliente_id in connections:
+    conn = connections.get(cliente_id)
+
+    if conn:
         try:
-            # Em uma implementação real, você precisaria de um mecanismo mais sofisticado
-            # para enviar dados através das conexões SSE ativas
-            logging.info(f"[MS RESERVA] Notificação SSE enviada para {cliente_id}: {dados}")
+            payload = {"tipo": "notificacao", "mensagem": mensagem}
+            conn.put(payload)  # insere na fila
+            logging.info(f"[MS RESERVA] Notificação SSE enviada para {cliente_id}: {payload}")
+            return jsonify({"mensagem": "Notificação enviada"}), 200
         except Exception as e:
             logging.error(f"[MS RESERVA] Erro ao enviar notificação SSE: {str(e)}")
             connections.pop(cliente_id, None)
+            return jsonify({"erro": "Erro ao enviar notificação"}), 500
+    else:
+        logging.warning(f"[MS RESERVA] Nenhuma conexão SSE ativa para {cliente_id}")
+        return jsonify({"erro": "Nenhuma conexão SSE ativa para o cliente"}), 404
 
 def criar_reserva(
     itinerario_id,
@@ -360,46 +322,6 @@ def obter_todas_reservas():
         return []
         
     return reservas
-            
-def get_interesses_ativos():
-    if INTERESSES_PATH.exists():
-        with open(INTERESSES_PATH, "r", encoding="utf-8") as f:
-            return set(json.load(f))
-    return set()
-
-# Consumidor de eventos e envio SSE personalizado
-import pika
-import threading
-
-def notificar_promocao_para_interessados(promocao):
-    interesses = get_interesses_ativos()
-    for cliente_id in interesses:
-        enviar_notificacao_sse(cliente_id, promocao, tipo_conexao='promocoes')
-
-def processar_promocao(ch, method, properties, body):
-    try:
-        promocao = json.loads(body)
-        notificar_promocao_para_interessados(promocao)
-        logging.info(f"[MS RESERVA] Promoção notificada para interessados: {promocao}")
-    except Exception as e:
-        logging.error(f"[MS RESERVA] Erro ao processar promoção: {e}")
-
-def start_consuming_promocoes():
-    connection = pika.BlockingConnection(
-        pika.ConnectionParameters(host='rabbitmq', credentials=pika.PlainCredentials('guest', 'guest'))
-    )
-    channel = connection.channel()
-    channel.queue_declare(queue="promocoes")
-    channel.basic_consume(queue="promocoes", on_message_callback=processar_promocao, auto_ack=True)
-    logging.info("[MS RESERVA] Aguardando promoções...")
-    channel.start_consuming()
-
-def iniciar_consumidor_promocoes_em_thread():
-    t = threading.Thread(target=start_consuming_promocoes, daemon=True)
-    t.start()
-
-# No final do arquivo, antes do app.run:
-iniciar_consumidor_promocoes_em_thread()
         
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5001, debug=True)

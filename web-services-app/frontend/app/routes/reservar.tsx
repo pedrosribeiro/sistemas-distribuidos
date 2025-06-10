@@ -149,6 +149,22 @@ export default function Reservar() {
             const resultado = await response.json();
             setSuccess("Reserva criada com sucesso! Redirecionando para o pagamento...");
 
+            if (resultado && formData.cliente_id) {
+                const eventSource = new EventSource(
+                    `http://localhost:5001/api/sse/reserva/${encodeURIComponent(formData.cliente_id)}`
+                );
+                eventSource.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        if (data.tipo !== 'heartbeat') {
+                            alert(`Notificação: ${JSON.stringify(data.mensagem)}`);
+                        }
+                    } catch {
+                        alert(`Notificação recebida: ${event.data.mensagem}`);
+                    }
+                };
+            }
+
             // Redirecionar para página de pagamento ou home após 2 segundos
             setTimeout(() => {
                 if (resultado) {

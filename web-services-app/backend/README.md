@@ -3,6 +3,10 @@
 To start the RabbitMQ service and the cruise booking application, use the following command:
 
 ```bash
+docker-compose down --volumes --remove-orphan
+```
+
+```bash
 docker-compose up --build
 ```
 

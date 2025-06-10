@@ -8,6 +8,7 @@ interface Itinerario {
     datas_embarque: string[];
     porto_embarque: string;
     valor_por_pessoa: number;
+    cabines_disponiveis: number;
     descricao?: string;
     nome_navio?: string;
     numero_noites?: number;
@@ -107,8 +108,8 @@ export default function Reservar() {
             return;
         }
 
-        if (formData.numero_cabines < 1) {
-            setError("Número de cabines deve ser maior que 0");
+        if (formData.numero_cabines < 1 || formData.numero_cabines > itinerario?.cabines_disponiveis!) {
+            setError("Número de cabines indisponivel");
             return;
         }
 

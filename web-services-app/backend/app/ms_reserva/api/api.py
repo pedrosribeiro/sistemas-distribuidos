@@ -15,8 +15,12 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 from app.ms_reserva.rabbitmq import publicar_reserva
+from app.ms_reserva.rabbitmq import publicar_reserva_cancelada
+from app.ms_reserva.api.api import INTERESSES_PATH
+
 
 RESERVAS_PATH = Path("app/ms_reserva/data/reservas.json")
+INTERESSES_PATH = Path("app/ms_reserva/data/interesses_promocoes.json")
 
 logging.basicConfig(
     level=logging.INFO,
@@ -142,23 +146,52 @@ def cancelar_reserva_endpoint(reserva_id):
             return jsonify({"erro": "Reserva não encontrada"}), 404
         with open(RESERVAS_PATH, "r", encoding="utf-8") as f:
             reservas = json.load(f)
+
         reserva_cancelada = None
         for reserva in reservas:
             if reserva["reserva_id"] == reserva_id:
+                reserva["status_pagamento"] = "reserva_cancelada"
+                reserva["status_bilhete"] = "reserva_cancelada"
                 reserva_cancelada = reserva
-                reservas.remove(reserva)
                 break
+
         if not reserva_cancelada:
             return jsonify({"erro": "Reserva não encontrada"}), 404
-        # Salvar reservas atualizadas
+   
         with open(RESERVAS_PATH, "w", encoding="utf-8") as f:
             json.dump(reservas, f, indent=2)
-        # Publicar evento na fila 'reserva-cancelada'
-        from app.ms_reserva.rabbitmq import publicar_reserva_cancelada
+     
         publicar_reserva_cancelada(reserva_cancelada)
+
         return jsonify({"mensagem": "Reserva cancelada com sucesso"}), 200
     except Exception as e:
         return jsonify({"erro": f"Erro interno do servidor: {str(e)}"}), 500
+
+def registrar_interesse_promocoes(cliente_id):
+    INTERESSES_PATH.parent.mkdir(parents=True, exist_ok=True)
+    if INTERESSES_PATH.exists():
+        with open(INTERESSES_PATH, "r", encoding="utf-8") as f:
+            interesses = json.load(f)
+    else:
+        interesses = []
+    if cliente_id not in interesses:
+        interesses.append(cliente_id)
+        with open(INTERESSES_PATH, "w", encoding="utf-8") as f:
+            json.dump(interesses, f, indent=2)
+        return True
+    return False
+
+def cancelar_interesse_promocoes(cliente_id):
+    if not INTERESSES_PATH.exists():
+        return False
+    with open(INTERESSES_PATH, "r", encoding="utf-8") as f:
+        interesses = json.load(f)
+    if cliente_id in interesses:
+        interesses.remove(cliente_id)
+        with open(INTERESSES_PATH, "w", encoding="utf-8") as f:
+            json.dump(interesses, f, indent=2)
+        return True
+    return False
 
 # @app.route('/api/promocoes/interesse', methods=['POST'])
 # def registrar_interesse():
@@ -328,6 +361,45 @@ def obter_todas_reservas():
         
     return reservas
             
+def get_interesses_ativos():
+    if INTERESSES_PATH.exists():
+        with open(INTERESSES_PATH, "r", encoding="utf-8") as f:
+            return set(json.load(f))
+    return set()
+
+# Consumidor de eventos e envio SSE personalizado
+import pika
+import threading
+
+def notificar_promocao_para_interessados(promocao):
+    interesses = get_interesses_ativos()
+    for cliente_id in interesses:
+        enviar_notificacao_sse(cliente_id, promocao, tipo_conexao='promocoes')
+
+def processar_promocao(ch, method, properties, body):
+    try:
+        promocao = json.loads(body)
+        notificar_promocao_para_interessados(promocao)
+        logging.info(f"[MS RESERVA] Promoção notificada para interessados: {promocao}")
+    except Exception as e:
+        logging.error(f"[MS RESERVA] Erro ao processar promoção: {e}")
+
+def start_consuming_promocoes():
+    connection = pika.BlockingConnection(
+        pika.ConnectionParameters(host='rabbitmq', credentials=pika.PlainCredentials('guest', 'guest'))
+    )
+    channel = connection.channel()
+    channel.queue_declare(queue="promocoes")
+    channel.basic_consume(queue="promocoes", on_message_callback=processar_promocao, auto_ack=True)
+    logging.info("[MS RESERVA] Aguardando promoções...")
+    channel.start_consuming()
+
+def iniciar_consumidor_promocoes_em_thread():
+    t = threading.Thread(target=start_consuming_promocoes, daemon=True)
+    t.start()
+
+# No final do arquivo, antes do app.run:
+iniciar_consumidor_promocoes_em_thread()
         
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5001, debug=True)

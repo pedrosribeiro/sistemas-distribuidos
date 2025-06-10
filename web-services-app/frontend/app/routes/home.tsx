@@ -6,6 +6,7 @@ interface Itinerario {
     id: string;
     lugares_visitados: string[];
     datas_embarque: string[];
+    cabines_disponiveis: number;
     porto_embarque: string;
     valor_por_pessoa: number;
     descricao?: string;
@@ -259,6 +260,14 @@ export default function Home() {
                                 <div className="space-y-2 mb-4">
                                     <div className="flex justify-between">
                                         <span className="text-sm font-medium text-gray-500">
+                                            Cabines Disponíveis:
+                                        </span>
+                                        <span className="text-sm text-gray-900">
+                                            {itinerario.cabines_disponiveis}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-sm font-medium text-gray-500">
                                             Porto de Embarque:
                                         </span>
                                         <span className="text-sm text-gray-900">
@@ -270,8 +279,7 @@ export default function Home() {
                                             Datas Disponíveis:
                                         </span>
                                         <span className="text-sm text-gray-900">
-                                            {itinerario.datas_embarque.length}{" "}
-                                            opções
+                                            {itinerario.datas_embarque.join(", ")}
                                         </span>
                                     </div>
                                 </div>

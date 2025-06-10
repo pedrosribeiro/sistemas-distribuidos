@@ -30,6 +30,37 @@ services:
       - cruise_net
     volumes:
       - reservas_data:/app/app/ms_reserva/data
+  
+  ms_bilhete:
+    build:
+      context: .
+      dockerfile: app/ms_bilhete/Dockerfile
+    container_name: ms_bilhete
+    env_file:
+      - .env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - cruise_net
+    volumes:
+      - reservas_data:/app/app/ms_reserva/data
+  
+  ms_itinerarios:
+    build:
+      context: .
+      dockerfile: app/ms_itinerarios/Dockerfile
+    container_name: ms_itinerarios
+    env_file:
+      - .env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - cruise_net
+    volumes:
+      - reservas_data:/app/app/ms_reserva/data
+      - itinerarios_data:/app/app/ms_itinerarios
 
   ms_itinerarios_api:
     build:
@@ -47,6 +78,9 @@ services:
       - cruise_net
     ports:
       - "5002:5002"
+    volumes:
+      - reservas_data:/app/app/ms_reserva/data
+      - itinerarios_data:/app/app/ms_itinerarios
 
   ms_pagamento_api:
     build:
@@ -100,3 +134,4 @@ networks:
 
 volumes:
   reservas_data:
+  itinerarios_data:
